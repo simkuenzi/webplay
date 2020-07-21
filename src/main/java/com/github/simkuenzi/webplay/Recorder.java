@@ -5,70 +5,129 @@ import org.jsoup.nodes.Element;
 
 import java.io.*;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.channels.ClosedByInterruptException;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.nio.file.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Server {
+import static java.nio.file.StandardWatchEventKinds.*;
+
+public class Recorder {
+
+    public static void main(String[] args) throws Exception {
+        Recorder recorder = new Recorder();
+        recorder.stopFile = Path.of("stop");
+        recorder.record();
+    }
+
+    private Path outputFile;
+    private int port;
+    private int portOfApp;
+    private String includedContentTypes;
+    private Path stopFile;
+
+    private volatile boolean running;
 
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public void record() throws Exception {
+        running = true;
+        Thread recordThread = recordThread();
+        recordThread.start();
 
-        try (Writer out = new FileWriter("scenario.xml")) {
-            TestScenario testScenario = new XmlTestScenario(out);
+        WatchService watchService = FileSystems.getDefault().newWatchService();
+        stopFile.toAbsolutePath().getParent().register(watchService, ENTRY_MODIFY);
 
-            final boolean[] run = {true};
+        while (running) {
+            final WatchKey wk = watchService.take();
+            for (WatchEvent<?> event : wk.pollEvents()) {
+                final Path changed = (Path) event.context();
+                if (Files.isSameFile(changed, stopFile)) {
+                    running = false;
+                } else {
+                    wk.reset();
+                }
+            }
+        }
 
-            Thread t = new Thread(null, () -> {
+        System.out.println("Interrupting...");
+        recordThread.interrupt();
+        System.out.println("Joining...");
+        recordThread.join();
+    }
+
+    private Thread recordThread() {
+        return new Thread(null, () -> {
+            try {
+                ServerSocketChannel serverSocket = ServerSocketChannel.open();
+                serverSocket.bind(new InetSocketAddress(9013));
+                SocketChannel clientSocket;
                 try {
-                    ServerSocket serverSocket = new ServerSocket(9011);
-                    RequestBuilder requestBuilder = testScenario;
+                    clientSocket = serverSocket.accept();
+                } catch (ClosedByInterruptException e) {
+                    // End without having done anything
+                    return;
+                }
+
+                try (Writer out = new FileWriter("scenario.xml")) {
+                    RequestBuilder requestBuilder = new XmlTestScenario(out);
+
+
+//                    ServerSocket serverSocket = new ServerSocket(9011);
+
                     Request request = null;
-                    Socket clientSocket = serverSocket.accept();
 
-                    while (run[0]) {
-                        Socket appSocket = new Socket(InetAddress.getLocalHost(), 9000);
+//                    Socket clientSocket = serverSocket.accept();
 
-                        System.out.println("Client -> App");
-//                        transfer(clientSocket.getInputStream(), appSocket.getOutputStream());
-                        request = transfer(clientSocket.getInputStream(), appSocket.getOutputStream(), requestBuilder,
-                                RequestBuilder::request);
-                        System.out.println("App -> Client");
-//                        transfer(appSocket.getInputStream(), clientSocket.getOutputStream());
-                        requestBuilder = transfer(appSocket.getInputStream(), clientSocket.getOutputStream(), request,
-                                (builder, urlPath, method, headers, payload) -> {
-                                    Assertion a = null;
-                                    AssertionBuilder ab = builder;
-                                    for (Element input : Jsoup.parse(payload).select("input")) {
-                                        a = ab.assertion(input.val(), String.format("input[name=%s]", input.attr("name")));
-                                        ab = a;
-                                    }
-                                    return a != null ? a : builder;
-                                });
+                    running = true;
+                    while (running) {
+                        try {
+                            SocketChannel appSocket = SocketChannel.open(new InetSocketAddress("localhost", 9000));
+//                            Socket appSocket = new Socket(InetAddress.getLocalHost(), 9000);
+                            System.out.println("Client -> App");
+                            request = transfer(clientSocket, appSocket, requestBuilder,
+                                    RequestBuilder::request);
+                            System.out.println("App -> Client");
+                            requestBuilder = transfer(appSocket, clientSocket, request,
+                                    (builder, urlPath, method, headers, payload) -> {
+                                        Assertion a = null;
+                                        AssertionBuilder ab = builder;
+                                        for (Element input : Jsoup.parse(payload).select("input")) {
+                                            a = ab.assertion(input.val(), String.format("input[name=%s]", input.attr("name")));
+                                            ab = a;
+                                        }
+                                        return a != null ? a : builder;
+                                    });
+
+                        } catch (InterruptedException | ClosedByInterruptException e) {
+                            // Let the thread end...
+                            System.out.println("Interrupted");
+                        }
                     }
 
                     if (request != null) {
                         request.end();
                     }
-
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
-            }, "Recorder");
-            t.start();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
-            BufferedReader console = new BufferedReader(new InputStreamReader(System.in));
-            console.readLine();
-            run[0] = false;
-            t.join();
+            System.out.println("End Thread");
+        }, "Recorder");
+    }
 
-        }
-
+    public void stop() {
 
     }
+
 
     private static final Pattern REQUEST_LINE_PATTERN = Pattern.compile("(\\H+)\\h*(\\H+).*");
     private static final Pattern HEADER_PATTERN = Pattern.compile("(\\H+)\\h*:\\h*(.+)");
@@ -141,14 +200,16 @@ public class Server {
 
     }
 
-    private static <I, O> O transfer(InputStream in, OutputStream out, I requestBuilder, BuildAction<I, O> buildAction) throws Exception {
+    private static <I, O> O transfer(SocketChannel in, SocketChannel out, I requestBuilder, BuildAction<I, O> buildAction) throws Exception {
         ByteArrayOutputStream headerBuffer = new ByteArrayOutputStream();
         int endSeq = 0;
+        ByteBuffer singleByte = ByteBuffer.allocate(1);
         do {
-            int b = in.read();
-            endSeq = (endSeq << 8) + (byte) b;
-            headerBuffer.write(b);
-            out.write(b);
+            in.read(singleByte);
+            endSeq = (endSeq << 8) + singleByte.get(0);
+            headerBuffer.write(singleByte.get(0));
+            out.write(ByteBuffer.wrap(singleByte.array()));
+            singleByte.clear();
         } while (endSeq != HEADER_END_SEQ);
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(headerBuffer.toByteArray())));
@@ -188,10 +249,10 @@ public class Server {
         String payloadText;
         if (contentLength > 0) {
             System.out.println("Read payload of length " + contentLength);
-            byte[] payload = new byte[contentLength];
+            ByteBuffer payload = ByteBuffer.allocate(contentLength);
             in.read(payload);
-            payloadText = new String(payload);
-            out.write(payload);
+            payloadText = new String(payload.array());
+            out.write(ByteBuffer.wrap(payload.array()));
         } else {
             payloadText = "";
         }

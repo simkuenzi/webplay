@@ -23,17 +23,19 @@ public class RecordedTest {
     private static final List<String> restrictedHeaders = Arrays.asList("host", "connection");
 
     private final XPathFactory factory = XPathFactory.newInstance();
-    private final XPathExpression urlPathExpr = factory.newXPath().compile("request/urlPath/text()");
-    private final XPathExpression methodExpr = factory.newXPath().compile("request/method/text()");
-    private final XPathExpression payloadExpr = factory.newXPath().compile("request/playload/text()");
+    private final XPathExpression urlPathExpr = factory.newXPath().compile("request/@urlPath");
+    private final XPathExpression methodExpr = factory.newXPath().compile("request/@method");
+    private final XPathExpression payloadExpr = factory.newXPath().compile("request/@playload");
     private final XPathExpression headerExpr = factory.newXPath().compile("request/header");
-    private final XPathExpression headerNameExpr = factory.newXPath().compile("name/text()");
-    private final XPathExpression headerValueExpr = factory.newXPath().compile("value/text()");
+    private final XPathExpression headerNameExpr = factory.newXPath().compile("@name");
+    private final XPathExpression headerValueExpr = factory.newXPath().compile("@value");
     private final XPathExpression assertionExpr = factory.newXPath().compile("assertion");
-    private final XPathExpression selectorExpr = factory.newXPath().compile("selector/text()");
+    private final XPathExpression selectorExpr = factory.newXPath().compile("@selector");
     private final XPathExpression expectedTextExpr = factory.newXPath().compile("expectedText");
-    private final XPathExpression expectedAttrNameExpr = factory.newXPath().compile("expectedAttr/name");
-    private final XPathExpression expectedAttrValueExpr = factory.newXPath().compile("expectedAttr/value");
+    private final XPathExpression expectedTextValueExpr = factory.newXPath().compile("@text");
+    private final XPathExpression expectedAttrExpr = factory.newXPath().compile("expectedAttr");
+    private final XPathExpression expectedAttrNameExpr = factory.newXPath().compile("@name");
+    private final XPathExpression expectedAttrValueExpr = factory.newXPath().compile("@value");
 
     private final Node testNode;
 
@@ -71,20 +73,19 @@ public class RecordedTest {
         IntStream.range(0, assertions.getLength()).mapToObj(assertions::item).forEach(assertion -> {
             try {
                 Node expectedText = (Node) expectedTextExpr.evaluate(assertion, XPathConstants.NODE);
-                Node expectedAttrName = (Node) expectedAttrNameExpr.evaluate(assertion, XPathConstants.NODE);
-                Node expectedAttrValue = (Node) expectedAttrValueExpr.evaluate(assertion, XPathConstants.NODE);
+                Node expectedAttr = (Node) expectedAttrExpr.evaluate(assertion, XPathConstants.NODE);
                 String selector = selectorExpr.evaluate(assertion);
                 Element actual = doc.selectFirst(selector);
 
                 if (expectedText != null) {
-                    String expected = expectedText.getTextContent();
+                    String expected = expectedTextValueExpr.evaluate(expectedText);
                     assertionMethod.call(
                             String.format("The element %s does evaluate to %s, but %s is expected.", selector, actual, expected),
                             expected, actual.text()
                     );
-                } else if (expectedAttrName != null && expectedAttrValue != null) {
-                    String expected = expectedAttrValue.getTextContent();
-                    String attrName = expectedAttrName.getTextContent();
+                } else if (expectedAttr != null) {
+                    String expected = expectedAttrValueExpr.evaluate(expectedAttr);
+                    String attrName = expectedAttrNameExpr.evaluate(expectedAttr);
                     String actualValue = actual.attr(attrName);
                     assertionMethod.call(
                             String.format("The attribute %s of the element %s does evaluate to %s, but %s is expected.", attrName, selector, actualValue, expected),

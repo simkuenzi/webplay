@@ -22,12 +22,9 @@ public class XmlTestScenario implements TestScenario {
     public Request request(String urlPath, String method, Map<String, String> headers, String payload) throws XMLStreamException {
         XMLStreamWriter writer = XMLOutputFactory.newFactory().createXMLStreamWriter(out);
         writer.writeStartDocument();
-
         writeScenarioStart(writer);
-
         writeTestStart(writer);
         writeRequest(writer, urlPath, method, headers, payload);
-
         return new XmlRequest(writer);
     }
 
@@ -37,17 +34,10 @@ public class XmlTestScenario implements TestScenario {
 
     private void writeAssertion(XMLStreamWriter writer, String expected, String selector) throws XMLStreamException {
         writer.writeStartElement("assertion");
-        writer.writeStartElement("expectedAttr");
-        writer.writeStartElement("name");
-        writer.writeCharacters("value");
-        writer.writeEndElement();
-        writer.writeStartElement("value");
-        writer.writeCharacters(expected);
-        writer.writeEndElement();
-        writer.writeEndElement();
-        writer.writeStartElement("selector");
-        writer.writeCharacters(selector);
-        writer.writeEndElement();
+        writer.writeAttribute("selector", selector);
+        writer.writeEmptyElement("expectedAttr");
+        writer.writeAttribute("name", "value");
+        writer.writeAttribute("value", expected);
         writer.writeEndElement();
     }
 
@@ -61,27 +51,16 @@ public class XmlTestScenario implements TestScenario {
 
     private void writeRequest(XMLStreamWriter writer, String urlPath, String method, Map<String, String> headers, String payload) throws XMLStreamException {
         writer.writeStartElement("request");
-        writer.writeStartElement("urlPath");
-        writer.writeCharacters(urlPath);
-        writer.writeEndElement();
-        writer.writeStartElement("method");
-        writer.writeCharacters(method);
-        writer.writeEndElement();
-        for (Map.Entry<String, String> header : headers.entrySet()) {
-            writer.writeStartElement("header");
-            writer.writeStartElement("name");
-            writer.writeCharacters(header.getKey());
-            writer.writeEndElement();
-            writer.writeStartElement("value");
-            writer.writeCharacters(header.getValue());
-            writer.writeEndElement();
-            writer.writeEndElement();
+        writer.writeAttribute("urlPath", urlPath);
+        writer.writeAttribute("method", method);
+        if (!payload.isEmpty()) {
+            writer.writeAttribute("payload", payload);
         }
 
-        if (!payload.isEmpty()) {
-            writer.writeStartElement("payload");
-            writer.writeCharacters(payload);
-            writer.writeEndElement();
+        for (Map.Entry<String, String> header : headers.entrySet()) {
+            writer.writeEmptyElement("header");
+            writer.writeAttribute("name", header.getKey());
+            writer.writeAttribute("value", header.getValue());
         }
 
         writer.writeEndElement();
