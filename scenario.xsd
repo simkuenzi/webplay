@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema elementFormDefault="qualified" targetNamespace="https://github.com/simkuenzi/webplay/scenario.xsd" xmlns="https://github.com/simkuenzi/webplay/scenario.xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="scenario" type="scenarioType" />
+  <xs:complexType name="headerType">
+    <xs:sequence>
+      <xs:element name="name" type="xs:string"/>
+      <xs:element name="value" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="requestType">
+    <xs:sequence>
+      <xs:element type="xs:string" name="urlPath"/>
+      <xs:element type="xs:string" name="method"/>
+      <xs:element type="headerType" name="header" maxOccurs="unbounded" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="assertionType">
+    <xs:sequence>
+      <xs:choice>
+        <xs:element type="xs:string" name="expectedText"/>
+        <xs:element type="expectedAttrType" name="expectedAttr"/>
+      </xs:choice>
+      <xs:element type="xs:string" name="selector"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="testType">
+    <xs:sequence>
+      <xs:element type="requestType" name="request"/>
+      <xs:element type="assertionType" name="assertion"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="scenarioType">
+    <xs:sequence>
+      <xs:element type="testType" name="test" maxOccurs="unbounded" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="expectedAttrType">
+    <xs:sequence>
+      <xs:element type="xs:string" name="name"/>
+      <xs:element type="xs:string" name="value" />
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>
