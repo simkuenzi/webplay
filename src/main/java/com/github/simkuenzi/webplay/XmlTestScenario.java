@@ -32,12 +32,20 @@ public class XmlTestScenario implements TestScenario {
         writer.writeStartElement("scenario");
     }
 
-    private void writeAssertion(XMLStreamWriter writer, String expected, String selector) throws XMLStreamException {
+    private void writeAssertion(XMLStreamWriter writer, String expectedText, String selector) throws XMLStreamException {
+        writer.writeStartElement("assertion");
+        writer.writeAttribute("selector", selector);
+        writer.writeEmptyElement("expectedText");
+        writer.writeAttribute("text", expectedText);
+        writer.writeEndElement();
+    }
+
+    private void writeAssertion(XMLStreamWriter writer, String expectedAttrName, String expectedAttrValue, String selector) throws XMLStreamException {
         writer.writeStartElement("assertion");
         writer.writeAttribute("selector", selector);
         writer.writeEmptyElement("expectedAttr");
-        writer.writeAttribute("name", "value");
-        writer.writeAttribute("value", expected);
+        writer.writeAttribute("name", expectedAttrName);
+        writer.writeAttribute("value", expectedAttrValue);
         writer.writeEndElement();
     }
 
@@ -90,8 +98,8 @@ public class XmlTestScenario implements TestScenario {
         String xmlString = result.getWriter().toString();
         System.out.println(xmlString);
     }
-
     private class XmlAssertion implements Assertion {
+
         private final XMLStreamWriter writer;
 
         public XmlAssertion(XMLStreamWriter writer) {
@@ -99,8 +107,14 @@ public class XmlTestScenario implements TestScenario {
         }
 
         @Override
-        public Assertion assertion(String expected, String selector) throws XMLStreamException {
-            writeAssertion(writer, expected, selector);
+        public Assertion assertion(String expectedText, String selector) throws XMLStreamException {
+            writeAssertion(writer, expectedText, selector);
+            return new XmlAssertion(writer);
+        }
+
+        @Override
+        public Assertion assertion(String expectedAttrName, String expectedAttrValue, String selector) throws XMLStreamException {
+            writeAssertion(writer, expectedAttrName, expectedAttrValue, selector);
             return new XmlAssertion(writer);
         }
 
@@ -111,12 +125,12 @@ public class XmlTestScenario implements TestScenario {
             writeRequest(writer, urlPath, method, headers, payload);
             return new XmlRequest(writer);
         }
-
         @Override
         public void end() throws XMLStreamException {
             writeTestEnd(writer);
             writeScenarioEnd(writer);
         }
+
     }
 
     private class XmlRequest implements Request {
@@ -127,8 +141,14 @@ public class XmlTestScenario implements TestScenario {
         }
 
         @Override
-        public Assertion assertion(String expected, String selector) throws XMLStreamException {
-            writeAssertion(writer, expected, selector);
+        public Assertion assertion(String expectedAttrName, String expectedAttrValue, String selector) throws XMLStreamException {
+            writeAssertion(writer, expectedAttrName, expectedAttrValue, selector);
+            return new XmlAssertion(writer);
+        }
+
+        @Override
+        public Assertion assertion(String expectedText, String selector) throws XMLStreamException {
+            writeAssertion(writer, expectedText, selector);
             return new XmlAssertion(writer);
         }
 

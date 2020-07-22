@@ -1,6 +1,7 @@
 package com.github.simkuenzi.webplay;
 
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import javax.xml.stream.XMLStreamException;
@@ -231,8 +232,12 @@ public class Recorder {
         public Optional<AssertionBuilder> request(String serverPayload, String serverMime) throws XMLStreamException {
             if (includedContentTypes.contains(serverMime)) {
                 AssertionBuilder assertionBuilder = requestBuilder.request(urlPath, method, headers, payload);
-                for (Element input : Jsoup.parse(serverPayload).select("input")) {
-                    assertionBuilder = assertionBuilder.assertion(input.val(), String.format("input[name=%s]", input.attr("name")));
+                Document document = Jsoup.parse(serverPayload);
+                for (Element input : document.select("input")) {
+                    assertionBuilder = assertionBuilder.assertion("value", input.val(), String.format("input[name=%s]", input.attr("name")));
+                }
+                for (Element textarea : document.select("textarea")) {
+                    assertionBuilder = assertionBuilder.assertion(textarea.text(), String.format("textarea[name=%s]", textarea.attr("name")));
                 }
                 return Optional.of(assertionBuilder);
             }
