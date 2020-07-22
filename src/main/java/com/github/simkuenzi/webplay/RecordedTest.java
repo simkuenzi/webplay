@@ -25,7 +25,7 @@ public class RecordedTest {
     private final XPathFactory factory = XPathFactory.newInstance();
     private final XPathExpression urlPathExpr = factory.newXPath().compile("request/@urlPath");
     private final XPathExpression methodExpr = factory.newXPath().compile("request/@method");
-    private final XPathExpression payloadExpr = factory.newXPath().compile("request/@playload");
+    private final XPathExpression payloadExpr = factory.newXPath().compile("request/@payload");
     private final XPathExpression headerExpr = factory.newXPath().compile("request/header");
     private final XPathExpression headerNameExpr = factory.newXPath().compile("@name");
     private final XPathExpression headerValueExpr = factory.newXPath().compile("@value");
