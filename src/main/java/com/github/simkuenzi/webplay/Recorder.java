@@ -27,7 +27,7 @@ public class Recorder {
 
     public static void main(String[] args) throws Exception {
 
-        Recorder recorder = new Recorder(Paths.get("scenario.xml"), 9022, 9000,
+        Recorder recorder = new Recorder(Paths.get("scenario.xml"), 9033, 9000,
                 Collections.singletonList("text/html"), Path.of("stop"));
 
         recorder.record();
@@ -221,6 +221,7 @@ public class Recorder {
         if (matcher.matches()) {
             mime = matcher.group(1);
             charset = IntStream.range(2, matcher.groupCount() - 1)
+                    .filter(i -> matcher.group(i) != null)
                     .filter(i -> matcher.group(i).equals("charset"))
                     .mapToObj(i -> matcher.group(i + 1))
                     .findFirst().orElse("");
