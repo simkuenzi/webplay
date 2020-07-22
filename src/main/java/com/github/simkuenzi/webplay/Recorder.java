@@ -29,7 +29,7 @@ public class Recorder {
     public static void main(String[] args) throws Exception {
 
         Recorder recorder = new Recorder(Paths.get("scenario.xml"), 9033, 9000,
-                Collections.singletonList("text/html"), Path.of("stop"));
+                List.of("text/html", "application/x-www-form-urlencoded"), Path.of("stop"));
 
         recorder.record();
     }
@@ -90,7 +90,7 @@ public class Recorder {
 //                            Socket appSocket = new Socket(InetAddress.getLocalHost(), 9000);
                                 ClientToApp clientToApp = transfer(clientSocket, appSocket, requestBuilder,
                                         (builder, urlPath, method, headers, payload, mime) ->
-                                                new ClientToApp(builder, method, urlPath, headers, payload));
+                                                new ClientToApp(builder, method, urlPath, headers, payload, mime));
                                 Optional<AssertionBuilder> ab = transfer(appSocket, clientSocket, clientToApp,
                                         (builder, urlPath, method, headers, payload, mime) ->
                                                 clientToApp.request(payload, mime));
@@ -220,17 +220,19 @@ public class Recorder {
         private final String urlPath;
         private final Map<String, String> headers;
         private final String payload;
+        private final String mime;
 
-        public ClientToApp(RequestBuilder requestBuilder, String method, String urlPath, Map<String, String> headers, String payload) {
+        public ClientToApp(RequestBuilder requestBuilder, String method, String urlPath, Map<String, String> headers, String payload, String mime) {
             this.requestBuilder = requestBuilder;
             this.method = method;
             this.urlPath = urlPath;
             this.headers = headers;
             this.payload = payload;
+            this.mime = mime;
         }
 
         public Optional<AssertionBuilder> request(String serverPayload, String serverMime) throws XMLStreamException {
-            if (includedContentTypes.contains(serverMime)) {
+            if (includedContentTypes.contains(serverMime) || includedContentTypes.contains(mime)) {
                 AssertionBuilder assertionBuilder = requestBuilder.request(urlPath, method, headers, payload);
                 Document document = Jsoup.parse(serverPayload);
                 for (Element input : document.select("input")) {
