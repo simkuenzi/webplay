@@ -21,7 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
-import static java.nio.file.StandardWatchEventKinds.*;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 
 public class Recorder {
 
@@ -76,76 +76,56 @@ public class Recorder {
 
     private Thread recordThread() {
         return new Thread(null, () -> {
-            try {
-                ServerSocketChannel serverSocket = ServerSocketChannel.open();
-                serverSocket.bind(new InetSocketAddress(port));
+            try (ServerSocketChannel serverSocket = ServerSocketChannel.open().bind(new InetSocketAddress(port))) {
                 System.out.printf("Recording on http://localhost:%d%n", port);
-                SocketChannel clientSocket;
-                try {
-                    clientSocket = serverSocket.accept();
-                } catch (ClosedByInterruptException e) {
-                    // End without having done anything
-                    return;
-                }
-
-                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                try (Writer out = new OutputStreamWriter(buffer)) {
-                    RequestBuilder requestBuilder = new XmlTestScenario(out);
-
-
-//                    ServerSocket serverSocket = new ServerSocket(9011);
-
-                     AssertionBuilder assertionBuilder = null;
-
-//                    Socket clientSocket = serverSocket.accept();
-
-                    running = true;
-                    while (running) {
-                        try {
-                            SocketChannel appSocket = SocketChannel.open(new InetSocketAddress("localhost", portOfApp));
+                try (SocketChannel clientSocket = serverSocket.accept()) {
+                    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                    try (Writer out = new OutputStreamWriter(buffer)) {
+                        RequestBuilder requestBuilder = new XmlTestScenario(out);
+                        AssertionBuilder assertionBuilder = null;
+                        running = true;
+                        while (running) {
+                            try (SocketChannel appSocket = SocketChannel.open(new InetSocketAddress("localhost", portOfApp))) {
 //                            Socket appSocket = new Socket(InetAddress.getLocalHost(), 9000);
-                            ClientToApp clientToApp = transfer(clientSocket, appSocket, requestBuilder,
-                                    (builder, urlPath, method, headers, payload, mime) ->
-                                            new ClientToApp(builder, method, urlPath, headers, payload));
-                            Optional<AssertionBuilder> ab = transfer(appSocket, clientSocket, clientToApp,
-                                    (builder, urlPath, method, headers, payload, mime) ->
-                                            clientToApp.request(payload, mime));
-                            if (ab.isPresent()) {
-                                assertionBuilder = ab.get();
-                                requestBuilder = ab.get();
-                            }
+                                ClientToApp clientToApp = transfer(clientSocket, appSocket, requestBuilder,
+                                        (builder, urlPath, method, headers, payload, mime) ->
+                                                new ClientToApp(builder, method, urlPath, headers, payload));
+                                Optional<AssertionBuilder> ab = transfer(appSocket, clientSocket, clientToApp,
+                                        (builder, urlPath, method, headers, payload, mime) ->
+                                                clientToApp.request(payload, mime));
+                                if (ab.isPresent()) {
+                                    assertionBuilder = ab.get();
+                                    requestBuilder = ab.get();
+                                }
 
-                        } catch (InterruptedException | ClosedByInterruptException e) {
-                            // Let the thread end...
+                            } catch (InterruptedException | ClosedByInterruptException e) {
+                                // Let the thread end...
+                            }
+                        }
+
+                        if (assertionBuilder != null) {
+                            assertionBuilder.end();
                         }
                     }
 
-                    if (assertionBuilder != null) {
-                        assertionBuilder.end();
+                    // Pretty print
+                    try (Writer writer = Files.newBufferedWriter(outputFile)) {
+                        Transformer transformer = TransformerFactory.newInstance().newTransformer();
+                        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+                        StreamResult result = new StreamResult(writer);
+                        StreamSource source = new StreamSource(new ByteArrayInputStream(buffer.toByteArray()));
+                        transformer.transform(source, result);
                     }
                 }
-
-                // Pretty print
-                try (Writer writer = Files.newBufferedWriter(outputFile)) {
-                    Transformer transformer = TransformerFactory.newInstance().newTransformer();
-                    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-                    transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-                    StreamResult result = new StreamResult(writer);
-                    StreamSource source = new StreamSource(new ByteArrayInputStream(buffer.toByteArray()));
-                    transformer.transform(source, result);
-                }
+            } catch (ClosedByInterruptException e) {
+                // End without having done anything
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
             running = false;
         }, "Recorder");
     }
-
-    public void stop() {
-
-    }
-
 
     private static final Pattern REQUEST_LINE_PATTERN = Pattern.compile("(\\H+)\\h*(\\H+).*");
     private static final Pattern HEADER_PATTERN = Pattern.compile("(\\H+)\\h*:\\h*(.+)");
@@ -233,7 +213,7 @@ public class Recorder {
         return buildAction.build(requestBuilder, urlPath, method, headers, payloadText, mime);
     }
 
-    private class ClientToApp  {
+    private class ClientToApp {
         private final RequestBuilder requestBuilder;
         private final String method;
         private final String urlPath;
