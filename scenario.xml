@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <scenario>
     <test>
-        <request urlPath="/sketchbook/hallo_+du+er__sie____ihm" method="GET">
+        <request urlPath="/sketchbook/A_+A+sdsf" method="GET">
             <header name="Cookie"
                     value="Idea-5a9c36e2=574dae78-d212-43b7-ad16-cb54faff9a1f; session=IWzYbb9VR/u4TPYWRFJKzZ3WOfFb9S+pDPTux1/t3b7hsGAk2/xSyDqP28cwJl6Dl1Uh0EZpKAgzXpewsfL5GRMAik5qJDq0"/>
             <header name="Accept" value="text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"/>
@@ -9,30 +9,26 @@
             <header name="User-Agent"
                     value="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"/>
             <header name="Connection" value="keep-alive"/>
-            <header name="Referer" value="http://localhost:9013/sketchbook/hallo_+du+er__sie____ihm"/>
-            <header name="Host" value="localhost:9013"/>
+            <header name="Host" value="localhost:9022"/>
             <header name="Accept-Language" value="de,en-US;q=0.7,en;q=0.3"/>
             <header name="Accept-Encoding" value="gzip, deflate"/>
         </request>
         <assertion selector="input[name=name]">
-            <expectedAttr name="value" value="hallo du+er_sie__ihm"/>
+            <expectedAttr name="value" value="A A+sdsf"/>
         </assertion>
         <assertion selector="input[name=delete]">
             <expectedAttr name="value" value=""/>
         </assertion>
     </test>
     <test>
-        <request urlPath="/sketchbook/css/style.css" method="GET">
+        <request urlPath="/favicon.ico" method="GET">
             <header name="Cookie"
                     value="Idea-5a9c36e2=574dae78-d212-43b7-ad16-cb54faff9a1f; session=IWzYbb9VR/u4TPYWRFJKzZ3WOfFb9S+pDPTux1/t3b7hsGAk2/xSyDqP28cwJl6Dl1Uh0EZpKAgzXpewsfL5GRMAik5qJDq0"/>
-            <header name="If-None-Match" value="W/&quot;IDT3zPaBRkoIDT2v5suMkw&quot;"/>
-            <header name="Accept" value="text/css,*/*;q=0.1"/>
+            <header name="Accept" value="image/webp,*/*"/>
             <header name="User-Agent"
                     value="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"/>
             <header name="Connection" value="keep-alive"/>
-            <header name="Referer" value="http://localhost:9013/sketchbook/hallo_+du+er__sie____ihm"/>
-            <header name="If-Modified-Since" value="Mon, 20 Jul 2020 19:24:43 GMT"/>
-            <header name="Host" value="localhost:9013"/>
+            <header name="Host" value="localhost:9022"/>
             <header name="Accept-Language" value="de,en-US;q=0.7,en;q=0.3"/>
             <header name="Accept-Encoding" value="gzip, deflate"/>
         </request>
@@ -46,66 +42,13 @@
             <header name="User-Agent"
                     value="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"/>
             <header name="Connection" value="keep-alive"/>
-            <header name="Referer" value="http://localhost:9013/sketchbook/hallo_+du+er__sie____ihm"/>
-            <header name="Host" value="localhost:9013"/>
+            <header name="Referer" value="http://localhost:9022/sketchbook/A_+A+sdsf"/>
+            <header name="Host" value="localhost:9022"/>
             <header name="Accept-Language" value="de,en-US;q=0.7,en;q=0.3"/>
             <header name="Accept-Encoding" value="gzip, deflate"/>
         </request>
         <assertion selector="input[name=name]">
             <expectedAttr name="value" value=""/>
         </assertion>
-    </test>
-    <test>
-        <request urlPath="/sketchbook/css/style.css" method="GET">
-            <header name="Cookie"
-                    value="Idea-5a9c36e2=574dae78-d212-43b7-ad16-cb54faff9a1f; session=IWzYbb9VR/u4TPYWRFJKzZ3WOfFb9S+pDPTux1/t3b7hsGAk2/xSyDqP28cwJl6Dl1Uh0EZpKAgzXpewsfL5GRMAik5qJDq0"/>
-            <header name="If-None-Match" value="W/&quot;IDT3zPaBRkoIDT2v5suMkw&quot;"/>
-            <header name="Accept" value="text/css,*/*;q=0.1"/>
-            <header name="User-Agent"
-                    value="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"/>
-            <header name="Connection" value="keep-alive"/>
-            <header name="Referer" value="http://localhost:9013/sketchbook/"/>
-            <header name="If-Modified-Since" value="Mon, 20 Jul 2020 19:24:43 GMT"/>
-            <header name="Host" value="localhost:9013"/>
-            <header name="Accept-Language" value="de,en-US;q=0.7,en;q=0.3"/>
-            <header name="Accept-Encoding" value="gzip, deflate"/>
-        </request>
-    </test>
-    <test>
-        <request urlPath="/sketchbook/Test_+Hallo____+" method="GET">
-            <header name="Cookie"
-                    value="Idea-5a9c36e2=574dae78-d212-43b7-ad16-cb54faff9a1f; session=IWzYbb9VR/u4TPYWRFJKzZ3WOfFb9S+pDPTux1/t3b7hsGAk2/xSyDqP28cwJl6Dl1Uh0EZpKAgzXpewsfL5GRMAik5qJDq0"/>
-            <header name="Accept" value="text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"/>
-            <header name="Upgrade-Insecure-Requests" value="1"/>
-            <header name="User-Agent"
-                    value="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"/>
-            <header name="Connection" value="keep-alive"/>
-            <header name="Referer" value="http://localhost:9013/sketchbook/"/>
-            <header name="Host" value="localhost:9013"/>
-            <header name="Accept-Language" value="de,en-US;q=0.7,en;q=0.3"/>
-            <header name="Accept-Encoding" value="gzip, deflate"/>
-        </request>
-        <assertion selector="input[name=name]">
-            <expectedAttr name="value" value="Test Hallo__+"/>
-        </assertion>
-        <assertion selector="input[name=delete]">
-            <expectedAttr name="value" value=""/>
-        </assertion>
-    </test>
-    <test>
-        <request urlPath="/sketchbook/css/style.css" method="GET">
-            <header name="Cookie"
-                    value="Idea-5a9c36e2=574dae78-d212-43b7-ad16-cb54faff9a1f; session=IWzYbb9VR/u4TPYWRFJKzZ3WOfFb9S+pDPTux1/t3b7hsGAk2/xSyDqP28cwJl6Dl1Uh0EZpKAgzXpewsfL5GRMAik5qJDq0"/>
-            <header name="If-None-Match" value="W/&quot;IDT3zPaBRkoIDT2v5suMkw&quot;"/>
-            <header name="Accept" value="text/css,*/*;q=0.1"/>
-            <header name="User-Agent"
-                    value="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0"/>
-            <header name="Connection" value="keep-alive"/>
-            <header name="Referer" value="http://localhost:9013/sketchbook/Test_+Hallo____+"/>
-            <header name="If-Modified-Since" value="Mon, 20 Jul 2020 19:24:43 GMT"/>
-            <header name="Host" value="localhost:9013"/>
-            <header name="Accept-Language" value="de,en-US;q=0.7,en;q=0.3"/>
-            <header name="Accept-Encoding" value="gzip, deflate"/>
-        </request>
     </test>
 </scenario>

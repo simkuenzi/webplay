@@ -98,7 +98,7 @@ public class RecordedTest {
         });
     }
 
-    interface AssertionMethod {
+    public interface AssertionMethod {
         void call(String message, String expected, String actual);
     }
 }

@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'maven-publish'
 }
 
 group 'com.github.simkuenzi'
@@ -13,3 +14,15 @@ dependencies {
     implementation group: 'org.jsoup', name: 'jsoup', version: '1.13.1'
     testImplementation group: 'junit', name: 'junit', version: '4.12'
 }
+
+publishing {
+    repositories {
+        mavenLocal()
+    }
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
+    }
+}
+

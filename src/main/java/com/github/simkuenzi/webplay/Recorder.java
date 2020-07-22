@@ -3,36 +3,44 @@ package com.github.simkuenzi.webplay;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 
+import javax.xml.stream.XMLStreamException;
 import java.io.*;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.file.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 import static java.nio.file.StandardWatchEventKinds.*;
 
 public class Recorder {
 
     public static void main(String[] args) throws Exception {
-        Recorder recorder = new Recorder();
-        recorder.stopFile = Path.of("stop");
+
+        Recorder recorder = new Recorder(Paths.get("scenario.xml"), 9022, 9000,
+                Collections.singletonList("text/html"), Path.of("stop"));
+
         recorder.record();
     }
 
-    private Path outputFile;
-    private int port;
-    private int portOfApp;
-    private String includedContentTypes;
-    private Path stopFile;
+    private final Path outputFile;
+    private final int port;
+    private final int portOfApp;
+    private final List<String> includedContentTypes;
+    private final Path stopFile;
+
+    public Recorder(Path outputFile, int port, int portOfApp, List<String> includedContentTypes, Path stopFile) {
+        this.outputFile = outputFile;
+        this.port = port;
+        this.portOfApp = portOfApp;
+        this.includedContentTypes = includedContentTypes;
+        this.stopFile = stopFile;
+    }
 
     private volatile boolean running;
 
@@ -46,10 +54,15 @@ public class Recorder {
         stopFile.toAbsolutePath().getParent().register(watchService, ENTRY_MODIFY);
 
         while (running) {
+            System.out.println("Watching");
             final WatchKey wk = watchService.take();
             for (WatchEvent<?> event : wk.pollEvents()) {
                 final Path changed = (Path) event.context();
-                if (Files.isSameFile(changed, stopFile)) {
+                System.out.println(changed);
+                System.out.println("Changed exists " + Files.exists(changed));
+                System.out.println("Stop exists " + Files.exists(stopFile));
+                System.out.println("Same " + (Files.exists(changed) && Files.isSameFile(changed, stopFile)));
+                if (changed.getFileName().equals(stopFile.getFileName())) {
                     running = false;
                 } else {
                     wk.reset();
@@ -67,7 +80,7 @@ public class Recorder {
         return new Thread(null, () -> {
             try {
                 ServerSocketChannel serverSocket = ServerSocketChannel.open();
-                serverSocket.bind(new InetSocketAddress(9013));
+                serverSocket.bind(new InetSocketAddress(port));
                 SocketChannel clientSocket;
                 try {
                     clientSocket = serverSocket.accept();
@@ -76,35 +89,33 @@ public class Recorder {
                     return;
                 }
 
-                try (Writer out = new FileWriter("scenario.xml")) {
+                try (Writer out = Files.newBufferedWriter(outputFile)) {
                     RequestBuilder requestBuilder = new XmlTestScenario(out);
 
 
 //                    ServerSocket serverSocket = new ServerSocket(9011);
 
-                    Request request = null;
+                     AssertionBuilder assertionBuilder = null;
 
 //                    Socket clientSocket = serverSocket.accept();
 
                     running = true;
                     while (running) {
                         try {
-                            SocketChannel appSocket = SocketChannel.open(new InetSocketAddress("localhost", 9000));
+                            SocketChannel appSocket = SocketChannel.open(new InetSocketAddress("localhost", portOfApp));
 //                            Socket appSocket = new Socket(InetAddress.getLocalHost(), 9000);
                             System.out.println("Client -> App");
-                            request = transfer(clientSocket, appSocket, requestBuilder,
-                                    RequestBuilder::request);
+                            ClientToApp clientToApp = transfer(clientSocket, appSocket, requestBuilder,
+                                    (builder, urlPath, method, headers, payload, mime) ->
+                                            new ClientToApp(builder, method, urlPath, headers, payload));
                             System.out.println("App -> Client");
-                            requestBuilder = transfer(appSocket, clientSocket, request,
-                                    (builder, urlPath, method, headers, payload) -> {
-                                        Assertion a = null;
-                                        AssertionBuilder ab = builder;
-                                        for (Element input : Jsoup.parse(payload).select("input")) {
-                                            a = ab.assertion(input.val(), String.format("input[name=%s]", input.attr("name")));
-                                            ab = a;
-                                        }
-                                        return a != null ? a : builder;
-                                    });
+                            Optional<AssertionBuilder> ab = transfer(appSocket, clientSocket, clientToApp,
+                                    (builder, urlPath, method, headers, payload, mime) ->
+                                            clientToApp.request(payload, mime));
+                            if (ab.isPresent()) {
+                                assertionBuilder = ab.get();
+                                requestBuilder = ab.get();
+                            }
 
                         } catch (InterruptedException | ClosedByInterruptException e) {
                             // Let the thread end...
@@ -112,8 +123,8 @@ public class Recorder {
                         }
                     }
 
-                    if (request != null) {
-                        request.end();
+                    if (assertionBuilder != null) {
+                        assertionBuilder.end();
                     }
                 }
             } catch (Exception e) {
@@ -121,6 +132,7 @@ public class Recorder {
             }
 
             System.out.println("End Thread");
+            running = false;
         }, "Recorder");
     }
 
@@ -131,76 +143,14 @@ public class Recorder {
 
     private static final Pattern REQUEST_LINE_PATTERN = Pattern.compile("(\\H+)\\h*(\\H+).*");
     private static final Pattern HEADER_PATTERN = Pattern.compile("(\\H+)\\h*:\\h*(.+)");
+    private static final Pattern CONTENT_TYPE_PATTERN = Pattern.compile("(\\H+?)(:?\\h*;\\h*(\\H+)=(\\H+))*");
     private static final int HEADER_END_SEQ = 0x0d0a0d0a;
 
     interface BuildAction<I, O> {
-        O build(I builder, String urlPath, String method, Map<String, String> headers, String payload) throws Exception;
+        O build(I builder, String urlPath, String method, Map<String, String> headers, String payload, String mime) throws Exception;
     }
 
-    private static void transfer(InputStream in, OutputStream out) throws Exception {
-        ByteArrayOutputStream headerBuffer = new ByteArrayOutputStream();
-        int endSeq = 0;
-        do {
-            int b = in.read();
-            endSeq = (endSeq << 8) + (byte) b;
-            headerBuffer.write(b);
-            out.write(b);
-        } while (endSeq != HEADER_END_SEQ);
-
-        BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(headerBuffer.toByteArray())));
-
-        String method;
-        String urlPath;
-        String requestLine = reader.readLine();
-        Matcher requestLineMatcher = REQUEST_LINE_PATTERN.matcher(requestLine);
-        if (requestLineMatcher.matches()) {
-            method = requestLineMatcher.group(1);
-            urlPath = requestLineMatcher.group(2);
-        } else {
-            throw new Exception(String.format("Request line %s is not understood.", requestLine));
-        }
-
-        Map<String, String> headers = new HashMap<>();
-        String headerLine;
-        while ((headerLine = reader.readLine()) != null) {
-            System.out.println(headerLine);
-            if (!headerLine.isEmpty()) {
-                Matcher matcher = HEADER_PATTERN.matcher(headerLine);
-                if (matcher.matches()) {
-                    headers.put(matcher.group(1), matcher.group(2));
-                } else {
-                    throw new Exception(String.format("Header line %s is not understood.", headerLine));
-                }
-            }
-        }
-
-
-        int contentLength = headers.entrySet().stream()
-                .filter(e -> e.getKey().toLowerCase().equals("content-length"))
-                .findFirst()
-                .map(e -> Integer.parseInt(e.getValue()))
-                .orElse(0);
-
-        String payloadText;
-        if (contentLength > 0) {
-            System.out.println("Read payload of length " + contentLength);
-            byte[] payload = new byte[contentLength];
-            in.read(payload);
-            payloadText = new String(payload);
-            out.write(payload);
-        } else {
-            payloadText = "";
-        }
-
-        boolean isHtml = headers.entrySet().stream()
-                .filter(e -> e.getKey().toLowerCase().equals("content-length"))
-                .findFirst()
-                .map(e -> e.getValue().startsWith("text/html"))
-                .orElse(false);
-
-    }
-
-    private static <I, O> O transfer(SocketChannel in, SocketChannel out, I requestBuilder, BuildAction<I, O> buildAction) throws Exception {
+    private <I, O> O transfer(SocketChannel in, SocketChannel out, I requestBuilder, BuildAction<I, O> buildAction) throws Exception {
         ByteArrayOutputStream headerBuffer = new ByteArrayOutputStream();
         int endSeq = 0;
         ByteBuffer singleByte = ByteBuffer.allocate(1);
@@ -257,12 +207,51 @@ public class Recorder {
             payloadText = "";
         }
 
-        boolean isHtml = headers.entrySet().stream()
+        String contentType = headers.entrySet().stream()
                 .filter(e -> e.getKey().toLowerCase().equals("content-type"))
-                .findFirst()
-                .map(e -> e.getValue().startsWith("text/html"))
-                .orElse(false);
+                .findFirst().map(Map.Entry::getValue).orElse("");
 
-        return buildAction.build(requestBuilder, urlPath, method, headers, isHtml ? payloadText : "");
+        String mime;
+        String charset;
+        Matcher matcher = CONTENT_TYPE_PATTERN.matcher(contentType);
+        if (matcher.matches()) {
+            mime = matcher.group(1);
+            charset = IntStream.range(2, matcher.groupCount() - 1)
+                    .filter(i -> matcher.group(i).equals("charset"))
+                    .mapToObj(i -> matcher.group(i + 1))
+                    .findFirst().orElse("");
+        } else {
+            mime = "";
+            charset = "";
+        }
+
+        return buildAction.build(requestBuilder, urlPath, method, headers, payloadText, mime);
+    }
+
+    private class ClientToApp  {
+        private final RequestBuilder requestBuilder;
+        private final String method;
+        private final String urlPath;
+        private final Map<String, String> headers;
+        private final String payload;
+
+        public ClientToApp(RequestBuilder requestBuilder, String method, String urlPath, Map<String, String> headers, String payload) {
+            this.requestBuilder = requestBuilder;
+            this.method = method;
+            this.urlPath = urlPath;
+            this.headers = headers;
+            this.payload = payload;
+        }
+
+        public Optional<AssertionBuilder> request(String serverPayload, String serverMime) throws XMLStreamException {
+            if (includedContentTypes.contains(serverMime)) {
+                AssertionBuilder assertionBuilder = requestBuilder.request(urlPath, method, headers, payload);
+                for (Element input : Jsoup.parse(serverPayload).select("input")) {
+                    assertionBuilder = assertionBuilder.assertion(input.val(), String.format("input[name=%s]", input.attr("name")));
+                }
+                return Optional.of(assertionBuilder);
+            }
+            return Optional.empty();
+        }
     }
 }
