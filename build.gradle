@@ -1,13 +1,17 @@
 plugins {
     id 'java'
     id 'maven-publish'
+    id 'signing'
+    id 'net.researchgate.release' version '2.8.1'
+    id 'io.codearte.nexus-staging' version '0.21.2'
 }
 
 group 'com.github.simkuenzi'
-version '0.0-SNAPSHOT'
+version version
 
 repositories {
     mavenCentral()
+    jcenter()
 }
 
 dependencies {
@@ -15,14 +19,66 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version: '4.12'
 }
 
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
 publishing {
     repositories {
-        mavenLocal()
+        maven {
+            def releasesRepoUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2'
+            def snapshotsRepoUrl = 'https://oss.sonatype.org/content/repositories/snapshots'
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            credentials {
+                username = mavenUser
+                password = mavenPassword
+            }
+        }
     }
     publications {
-        maven(MavenPublication) {
-            from components.java
+        mavenJava(MavenPublication) {
+            from(components.java)
+            pom {
+                packaging = 'jar'
+                name = "$project.group:$project.name"
+                description = 'Records HTTP requests and plays them back as tests.'
+                url = "https://github.com/simkuenzi/$project.name"
+                licenses {
+                    license {
+                        name = 'The Apache Software License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        name = 'Simon Künzi'
+                        email = 'sim.kuenzi@gmail.com'
+                        organizationUrl = 'https://github.com/simkuenzi'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:https://github.com/simkuenzi/' + project.name + '/' + project.name + '.git'
+                    developerConnection = 'scm:git:https://github.com/simkuenzi/' + project.name + '/' + project.name + '.git'
+                    url = "https://github.com/simkuenzi/$project.name"
+                }
+            }
         }
     }
 }
 
+signing {
+    sign publishing.publications.mavenJava
+    useGpgCmd()
+}
+
+nexusStaging {
+    username = mavenUser
+    password = mavenPassword
+}
+
+closeAndReleaseRepository.mustRunAfter = [publish]
+
+release {
+    buildTasks = ['publish', 'closeAndReleaseRepository']
+}
