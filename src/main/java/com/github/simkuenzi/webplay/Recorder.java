@@ -59,14 +59,9 @@ public class Recorder {
         stopFile.toAbsolutePath().getParent().register(watchService, ENTRY_MODIFY);
 
         while (running) {
-            System.out.println("Watching");
             final WatchKey wk = watchService.take();
             for (WatchEvent<?> event : wk.pollEvents()) {
                 final Path changed = (Path) event.context();
-                System.out.println(changed);
-                System.out.println("Changed exists " + Files.exists(changed));
-                System.out.println("Stop exists " + Files.exists(stopFile));
-                System.out.println("Same " + (Files.exists(changed) && Files.isSameFile(changed, stopFile)));
                 if (changed.getFileName().equals(stopFile.getFileName())) {
                     running = false;
                 } else {
@@ -75,9 +70,7 @@ public class Recorder {
             }
         }
 
-        System.out.println("Interrupting...");
         recordThread.interrupt();
-        System.out.println("Joining...");
         recordThread.join();
     }
 
@@ -86,6 +79,7 @@ public class Recorder {
             try {
                 ServerSocketChannel serverSocket = ServerSocketChannel.open();
                 serverSocket.bind(new InetSocketAddress(port));
+                System.out.printf("Recording on http://localhost:%d%n", port);
                 SocketChannel clientSocket;
                 try {
                     clientSocket = serverSocket.accept();
@@ -110,11 +104,9 @@ public class Recorder {
                         try {
                             SocketChannel appSocket = SocketChannel.open(new InetSocketAddress("localhost", portOfApp));
 //                            Socket appSocket = new Socket(InetAddress.getLocalHost(), 9000);
-                            System.out.println("Client -> App");
                             ClientToApp clientToApp = transfer(clientSocket, appSocket, requestBuilder,
                                     (builder, urlPath, method, headers, payload, mime) ->
                                             new ClientToApp(builder, method, urlPath, headers, payload));
-                            System.out.println("App -> Client");
                             Optional<AssertionBuilder> ab = transfer(appSocket, clientSocket, clientToApp,
                                     (builder, urlPath, method, headers, payload, mime) ->
                                             clientToApp.request(payload, mime));
@@ -125,7 +117,6 @@ public class Recorder {
 
                         } catch (InterruptedException | ClosedByInterruptException e) {
                             // Let the thread end...
-                            System.out.println("Interrupted");
                         }
                     }
 
@@ -147,7 +138,6 @@ public class Recorder {
                 e.printStackTrace();
             }
 
-            System.out.println("End Thread");
             running = false;
         }, "Recorder");
     }
@@ -194,7 +184,6 @@ public class Recorder {
         Map<String, String> headers = new HashMap<>();
         String headerLine;
         while ((headerLine = reader.readLine()) != null) {
-            System.out.println(headerLine);
             if (!headerLine.isEmpty()) {
                 Matcher matcher = HEADER_PATTERN.matcher(headerLine);
                 if (matcher.matches()) {
@@ -214,7 +203,6 @@ public class Recorder {
 
         String payloadText;
         if (contentLength > 0) {
-            System.out.println("Read payload of length " + contentLength);
             ByteBuffer payload = ByteBuffer.allocate(contentLength);
             in.read(payload);
             payloadText = new String(payload.array());
