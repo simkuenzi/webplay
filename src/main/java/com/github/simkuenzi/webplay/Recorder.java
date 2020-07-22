@@ -4,6 +4,11 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 
 import javax.xml.stream.XMLStreamException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -89,7 +94,8 @@ public class Recorder {
                     return;
                 }
 
-                try (Writer out = Files.newBufferedWriter(outputFile)) {
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                try (Writer out = new OutputStreamWriter(buffer)) {
                     RequestBuilder requestBuilder = new XmlTestScenario(out);
 
 
@@ -126,6 +132,16 @@ public class Recorder {
                     if (assertionBuilder != null) {
                         assertionBuilder.end();
                     }
+                }
+
+                // Pretty print
+                try (Writer writer = Files.newBufferedWriter(outputFile)) {
+                    Transformer transformer = TransformerFactory.newInstance().newTransformer();
+                    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                    transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+                    StreamResult result = new StreamResult(writer);
+                    StreamSource source = new StreamSource(new ByteArrayInputStream(buffer.toByteArray()));
+                    transformer.transform(source, result);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
