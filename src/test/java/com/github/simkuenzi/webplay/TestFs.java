@@ -33,6 +33,10 @@ class TestFs {
         return root.resolve("scenario.xml");
     }
 
+    public Path stopFile() {
+        return root.resolve("stop");
+    }
+
     interface Test {
         void run(TestFs testFs) throws Exception;
     }
