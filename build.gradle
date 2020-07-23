@@ -18,6 +18,8 @@ dependencies {
     implementation group: 'org.jsoup', name: 'jsoup', version: '1.13.1'
     testImplementation group: 'junit', name: 'junit', version: '4.12'
     testImplementation group: 'xmlunit', name: 'xmlunit', version: '1.6'
+    testImplementation group: 'io.javalin', name: 'javalin', version: '3.9.1'
+    testImplementation group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.30'
 }
 
 java {
