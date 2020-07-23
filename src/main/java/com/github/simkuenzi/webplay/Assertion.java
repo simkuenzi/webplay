@@ -1,4 +1,4 @@
 package com.github.simkuenzi.webplay;
 
-public interface Assertion extends RequestBuilder, AssertionBuilder, TestScenarioBuilder {
+public interface Assertion extends RequestBuilder, AssertionBuilder {
 }

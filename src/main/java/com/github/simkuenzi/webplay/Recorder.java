@@ -17,7 +17,10 @@ import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.file.*;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
@@ -29,96 +32,136 @@ public class Recorder {
     public static void main(String[] args) throws Exception {
 
         Recorder recorder = new Recorder(Paths.get("scenario.xml"), 9033, 9000,
-                List.of("text/html", "application/x-www-form-urlencoded"), Path.of("stop"));
+                List.of("text/html", "application/x-www-form-urlencoded"));
 
-        recorder.record();
+        recorder.start().waitTillStop(Path.of("build/stop"));
     }
 
     private final Path outputFile;
     private final int port;
     private final int portOfApp;
     private final List<String> includedContentTypes;
-    private final Path stopFile;
 
-    public Recorder(Path outputFile, int port, int portOfApp, List<String> includedContentTypes, Path stopFile) {
+    public Recorder(Path outputFile, int port, int portOfApp, List<String> includedContentTypes) {
         this.outputFile = outputFile;
         this.port = port;
         this.portOfApp = portOfApp;
         this.includedContentTypes = includedContentTypes;
-        this.stopFile = stopFile;
     }
 
     private volatile boolean running;
 
+    public Recording start() throws Exception {
+        Recording recording = new Recording(bind());
+        System.out.printf("Recording on http://localhost:%d%n", port);
+        return recording;
+    }
 
-    public void record() throws Exception {
-        running = true;
-        Thread recordThread = recordThread();
-        recordThread.start();
+    private ServerSocketChannel bind() throws IOException {
+        return ServerSocketChannel.open().bind(new InetSocketAddress(port));
+    }
+
+    private void acceptConnections(Recording recording, ServerSocketChannel serverSocket) throws Exception {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        try (Writer out = new OutputStreamWriter(buffer)) {
+            AssertionBuilder assertionBuilder = null;
+            RequestBuilder requestBuilder = new XmlTestScenario(out).testScenario();
+
+            try (SocketChannel clientSocket = serverSocket.accept()) {
+                while (recording.running) {
+                    try (SocketChannel appSocket = SocketChannel.open(new InetSocketAddress("localhost", portOfApp))) {
+                        ClientToApp clientToApp = transfer(clientSocket, appSocket, requestBuilder,
+                                (builder, urlPath, method, headers, payload, mime) ->
+                                        new ClientToApp(builder, method, urlPath, headers, payload, mime));
+                        requestBuilder = transfer(appSocket, clientSocket, clientToApp,
+                                (builder, urlPath, method, headers, payload, mime) ->
+                                        clientToApp.request(payload, mime));
+                    }
+                }
+            } catch (InterruptedException | ClosedByInterruptException e) {
+                // End thread nicely
+            }
+
+            requestBuilder.end();
+        }
+
+        // Pretty print
+        try (Writer writer = Files.newBufferedWriter(outputFile)) {
+            Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+            StreamResult result = new StreamResult(writer);
+            StreamSource source = new StreamSource(new ByteArrayInputStream(buffer.toByteArray()));
+            transformer.transform(source, result);
+        }
+    }
+
+    private void waitTillStop(Recording recording, Path stopFile) throws Exception {
 
         WatchService watchService = FileSystems.getDefault().newWatchService();
         stopFile.toAbsolutePath().getParent().register(watchService, ENTRY_MODIFY);
 
-        while (running) {
+        recording.loop(() -> {
             final WatchKey wk = watchService.take();
             for (WatchEvent<?> event : wk.pollEvents()) {
                 final Path changed = (Path) event.context();
                 if (changed.getFileName().equals(stopFile.getFileName())) {
-                    running = false;
+                    recording.stop();
                 } else {
                     wk.reset();
                 }
             }
+        });
+    }
+
+    private interface Iteration {
+        void run() throws Exception;
+    }
+
+    public class Recording implements AutoCloseable {
+        private final ServerSocketChannel serverSocket;
+        private volatile Thread recorderThread;
+        private volatile boolean running = true;
+
+        public Recording(ServerSocketChannel serverSocket) {
+            this.serverSocket = serverSocket;
+            recorderThread = new Thread(null, () -> {
+                try (this.serverSocket) {
+                    loop(() -> acceptConnections(this, serverSocket));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }, "Recorder");
+            recorderThread.start();
         }
 
-        recordThread.interrupt();
-        recordThread.join();
+        public void stop() throws Exception {
+            running = false;
+            recorderThread.interrupt();
+            recorderThread.join();
+        }
+
+        public void waitTillStop(Path stopFile) throws Exception {
+            Recorder.this.waitTillStop(this, stopFile);
+        }
+
+        private void loop(Iteration iteration) throws Exception {
+            while (running) {
+                iteration.run();
+            }
+        }
+
+        @Override
+        public void close() throws Exception {
+            stop();
+        }
     }
 
     private Thread recordThread() {
         return new Thread(null, () -> {
             try (ServerSocketChannel serverSocket = ServerSocketChannel.open().bind(new InetSocketAddress(port))) {
                 System.out.printf("Recording on http://localhost:%d%n", port);
-                try (SocketChannel clientSocket = serverSocket.accept()) {
-                    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                    try (Writer out = new OutputStreamWriter(buffer)) {
-                        RequestBuilder requestBuilder = new XmlTestScenario(out);
-                        AssertionBuilder assertionBuilder = null;
-                        running = true;
-                        while (running) {
-                            try (SocketChannel appSocket = SocketChannel.open(new InetSocketAddress("localhost", portOfApp))) {
-//                            Socket appSocket = new Socket(InetAddress.getLocalHost(), 9000);
-                                ClientToApp clientToApp = transfer(clientSocket, appSocket, requestBuilder,
-                                        (builder, urlPath, method, headers, payload, mime) ->
-                                                new ClientToApp(builder, method, urlPath, headers, payload, mime));
-                                Optional<AssertionBuilder> ab = transfer(appSocket, clientSocket, clientToApp,
-                                        (builder, urlPath, method, headers, payload, mime) ->
-                                                clientToApp.request(payload, mime));
-                                if (ab.isPresent()) {
-                                    assertionBuilder = ab.get();
-                                    requestBuilder = ab.get();
-                                }
-
-                            } catch (InterruptedException | ClosedByInterruptException e) {
-                                // Let the thread end...
-                            }
-                        }
-
-                        if (assertionBuilder != null) {
-                            assertionBuilder.end();
-                        }
-                    }
-
-                    // Pretty print
-                    try (Writer writer = Files.newBufferedWriter(outputFile)) {
-                        Transformer transformer = TransformerFactory.newInstance().newTransformer();
-                        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-                        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-                        StreamResult result = new StreamResult(writer);
-                        StreamSource source = new StreamSource(new ByteArrayInputStream(buffer.toByteArray()));
-                        transformer.transform(source, result);
-                    }
-                }
+                serve(serverSocket);
             } catch (ClosedByInterruptException e) {
                 // End without having done anything
             } catch (Exception e) {
@@ -126,6 +169,10 @@ public class Recorder {
             }
             running = false;
         }, "Recorder");
+    }
+
+    private void serve(ServerSocketChannel serverSocket) throws Exception {
+
     }
 
     private static final Pattern REQUEST_LINE_PATTERN = Pattern.compile("(\\H+)\\h*(\\H+).*");
@@ -231,7 +278,7 @@ public class Recorder {
             this.mime = mime;
         }
 
-        public Optional<AssertionBuilder> request(String serverPayload, String serverMime) throws XMLStreamException {
+        public RequestBuilder request(String serverPayload, String serverMime) throws XMLStreamException {
             if (includedContentTypes.contains(serverMime) || includedContentTypes.contains(mime)) {
                 AssertionBuilder assertionBuilder = requestBuilder.request(urlPath, method, headers, payload);
                 Document document = Jsoup.parse(serverPayload);
@@ -241,9 +288,9 @@ public class Recorder {
                 for (Element textarea : document.select("textarea")) {
                     assertionBuilder = assertionBuilder.assertion(textarea.text(), String.format("textarea[name=%s]", textarea.attr("name")));
                 }
-                return Optional.of(assertionBuilder);
+                return assertionBuilder;
             }
-            return Optional.empty();
+            return requestBuilder;
         }
     }
 }

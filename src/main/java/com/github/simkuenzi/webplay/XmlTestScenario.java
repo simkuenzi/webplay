@@ -19,13 +19,23 @@ public class XmlTestScenario implements TestScenario {
     }
 
     @Override
-    public Request request(String urlPath, String method, Map<String, String> headers, String payload) throws XMLStreamException {
+    public RequestBuilder testScenario() throws XMLStreamException {
         XMLStreamWriter writer = XMLOutputFactory.newFactory().createXMLStreamWriter(out);
         writer.writeStartDocument();
         writeScenarioStart(writer);
-        writeTestStart(writer);
-        writeRequest(writer, urlPath, method, headers, payload);
-        return new XmlRequest(writer);
+        return new RequestBuilder() {
+            @Override
+            public Request request(String urlPath, String method, Map<String, String> headers, String payload) throws XMLStreamException {
+                writeTestStart(writer);
+                writeRequest(writer, urlPath, method, headers, payload);
+                return new XmlRequest(writer);
+            }
+
+            @Override
+            public void end() throws XMLStreamException {
+               writeScenarioEnd(writer);
+            }
+        };
     }
 
     private void writeScenarioStart(XMLStreamWriter writer) throws XMLStreamException {
@@ -81,7 +91,7 @@ public class XmlTestScenario implements TestScenario {
     public static void main(String[] args) throws XMLStreamException, TransformerException {
         StringWriter writer = new StringWriter();
         XmlTestScenario xmlTest = new XmlTestScenario(writer);
-        xmlTest
+        xmlTest.testScenario()
                 .request("/", "GET", Map.of("Header", "value"), "")
                 .assertion("hallo", "input[greet]")
                 .request("/", "POST", Map.of("Header", "valueX"), "formValues")
@@ -98,6 +108,7 @@ public class XmlTestScenario implements TestScenario {
         String xmlString = result.getWriter().toString();
         System.out.println(xmlString);
     }
+
     private class XmlAssertion implements Assertion {
 
         private final XMLStreamWriter writer;
