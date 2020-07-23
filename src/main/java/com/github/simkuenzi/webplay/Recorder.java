@@ -120,7 +120,7 @@ public class Recorder {
 
     public class Recording implements AutoCloseable {
         private final ServerSocketChannel serverSocket;
-        private volatile Thread recorderThread;
+        private final Thread recorderThread;
         private volatile boolean running = true;
 
         public Recording(ServerSocketChannel serverSocket) {

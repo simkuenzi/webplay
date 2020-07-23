@@ -17,11 +17,16 @@ repositories {
 dependencies {
     implementation group: 'org.jsoup', name: 'jsoup', version: '1.13.1'
     testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation group: 'xmlunit', name: 'xmlunit', version: '1.6'
 }
 
 java {
     withJavadocJar()
     withSourcesJar()
+}
+
+test {
+    systemProperty 'com.github.simkuenzi.webplay.testfs', "${project.buildDir}/testfs"
 }
 
 publishing {
