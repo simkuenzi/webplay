@@ -16,11 +16,12 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
@@ -37,10 +38,16 @@ public class Recorder {
         recorder.start().waitTillStop(Path.of("build/stop"));
     }
 
+    private static final Pattern REQUEST_LINE_PATTERN = Pattern.compile("(\\H+)\\h*(\\H+).*");
+    private static final Pattern HEADER_PATTERN = Pattern.compile("(\\H+)\\h*:\\h*(.+)");
+    private static final Pattern CONTENT_TYPE_PATTERN = Pattern.compile("(\\H+?)(:?\\h*;\\h*(\\H+)=(\\H+))*");
+    private static final int HEADER_END_SEQ = 0x0d0a0d0a;
+
     private final Path outputFile;
     private final int port;
     private final int portOfApp;
     private final List<String> includedContentTypes;
+
 
     public Recorder(Path outputFile, int port, int portOfApp, List<String> includedContentTypes) {
         this.outputFile = outputFile;
@@ -48,8 +55,6 @@ public class Recorder {
         this.portOfApp = portOfApp;
         this.includedContentTypes = includedContentTypes;
     }
-
-    private volatile boolean running;
 
     public Recording start() throws Exception {
         Recording recording = new Recording(bind());
@@ -64,9 +69,7 @@ public class Recorder {
     private void acceptConnections(Recording recording, ServerSocketChannel serverSocket) throws Exception {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         try (Writer out = new OutputStreamWriter(buffer)) {
-            AssertionBuilder assertionBuilder = null;
             RequestBuilder requestBuilder = new XmlTestScenario(out).testScenario();
-
             try (SocketChannel clientSocket = serverSocket.accept()) {
                 while (recording.running) {
                     try (SocketChannel appSocket = SocketChannel.open(new InetSocketAddress("localhost", portOfApp))) {
@@ -97,7 +100,6 @@ public class Recorder {
     }
 
     private void waitTillStop(Recording recording, Path stopFile) throws Exception {
-
         WatchService watchService = FileSystems.getDefault().newWatchService();
         stopFile.toAbsolutePath().getParent().register(watchService, ENTRY_MODIFY);
 
@@ -112,76 +114,6 @@ public class Recorder {
                 }
             }
         });
-    }
-
-    private interface Iteration {
-        void run() throws Exception;
-    }
-
-    public class Recording implements AutoCloseable {
-        private final ServerSocketChannel serverSocket;
-        private final Thread recorderThread;
-        private volatile boolean running = true;
-
-        public Recording(ServerSocketChannel serverSocket) {
-            this.serverSocket = serverSocket;
-            recorderThread = new Thread(null, () -> {
-                try (this.serverSocket) {
-                    loop(() -> acceptConnections(this, serverSocket));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }, "Recorder");
-            recorderThread.start();
-        }
-
-        public void stop() throws Exception {
-            running = false;
-            recorderThread.interrupt();
-            recorderThread.join();
-        }
-
-        public void waitTillStop(Path stopFile) throws Exception {
-            Recorder.this.waitTillStop(this, stopFile);
-        }
-
-        private void loop(Iteration iteration) throws Exception {
-            while (running) {
-                iteration.run();
-            }
-        }
-
-        @Override
-        public void close() throws Exception {
-            stop();
-        }
-    }
-
-    private Thread recordThread() {
-        return new Thread(null, () -> {
-            try (ServerSocketChannel serverSocket = ServerSocketChannel.open().bind(new InetSocketAddress(port))) {
-                System.out.printf("Recording on http://localhost:%d%n", port);
-                serve(serverSocket);
-            } catch (ClosedByInterruptException e) {
-                // End without having done anything
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            running = false;
-        }, "Recorder");
-    }
-
-    private void serve(ServerSocketChannel serverSocket) throws Exception {
-
-    }
-
-    private static final Pattern REQUEST_LINE_PATTERN = Pattern.compile("(\\H+)\\h*(\\H+).*");
-    private static final Pattern HEADER_PATTERN = Pattern.compile("(\\H+)\\h*:\\h*(.+)");
-    private static final Pattern CONTENT_TYPE_PATTERN = Pattern.compile("(\\H+?)(:?\\h*;\\h*(\\H+)=(\\H+))*");
-    private static final int HEADER_END_SEQ = 0x0d0a0d0a;
-
-    interface BuildAction<I, O> {
-        O build(I builder, String urlPath, String method, Map<String, String> headers, String payload, String mime) throws Exception;
     }
 
     private <I, O> O transfer(SocketChannel in, SocketChannel out, I requestBuilder, BuildAction<I, O> buildAction) throws Exception {
@@ -222,22 +154,11 @@ public class Recorder {
             }
         }
 
-
         int contentLength = headers.entrySet().stream()
                 .filter(e -> e.getKey().toLowerCase().equals("content-length"))
                 .findFirst()
                 .map(e -> Integer.parseInt(e.getValue()))
                 .orElse(0);
-
-        String payloadText;
-        if (contentLength > 0) {
-            ByteBuffer payload = ByteBuffer.allocate(contentLength);
-            in.read(payload);
-            payloadText = new String(payload.array());
-            out.write(ByteBuffer.wrap(payload.array()));
-        } else {
-            payloadText = "";
-        }
 
         String contentType = headers.entrySet().stream()
                 .filter(e -> e.getKey().toLowerCase().equals("content-type"))
@@ -246,16 +167,28 @@ public class Recorder {
         String mime;
         String charset;
         Matcher matcher = CONTENT_TYPE_PATTERN.matcher(contentType);
+        Charset utf8 = StandardCharsets.UTF_8;
+
         if (matcher.matches()) {
             mime = matcher.group(1);
             charset = IntStream.range(2, matcher.groupCount() - 1)
                     .filter(i -> matcher.group(i) != null)
                     .filter(i -> matcher.group(i).equals("charset"))
                     .mapToObj(i -> matcher.group(i + 1))
-                    .findFirst().orElse("");
+                    .findFirst().orElse(utf8.name());
         } else {
             mime = "";
-            charset = "";
+            charset = utf8.name();
+        }
+
+        String payloadText;
+        if (contentLength > 0) {
+            ByteBuffer payload = ByteBuffer.allocate(contentLength);
+            in.read(payload);
+            payloadText = new String(payload.array(), charset);
+            out.write(ByteBuffer.wrap(payload.array()));
+        } else {
+            payloadText = "";
         }
 
         return buildAction.build(requestBuilder, urlPath, method, headers, payloadText, mime);
@@ -292,5 +225,53 @@ public class Recorder {
             }
             return requestBuilder;
         }
+    }
+
+    private interface Iteration {
+        void run() throws Exception;
+
+    }
+    public class Recording implements AutoCloseable {
+        private final ServerSocketChannel serverSocket;
+        private final Thread recorderThread;
+        private volatile boolean running = true;
+
+
+        public Recording(ServerSocketChannel serverSocket) {
+            this.serverSocket = serverSocket;
+            recorderThread = new Thread(null, () -> {
+                try (this.serverSocket) {
+                    loop(() -> acceptConnections(this, serverSocket));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }, "Recorder");
+            recorderThread.start();
+        }
+
+        public void stop() throws Exception {
+            running = false;
+            recorderThread.interrupt();
+            recorderThread.join();
+        }
+
+        public void waitTillStop(Path stopFile) throws Exception {
+            Recorder.this.waitTillStop(this, stopFile);
+        }
+
+        private void loop(Iteration iteration) throws Exception {
+            while (running) {
+                iteration.run();
+            }
+        }
+        @Override
+        public void close() throws Exception {
+            stop();
+        }
+
+    }
+
+    interface BuildAction<I, O> {
+        O build(I builder, String urlPath, String method, Map<String, String> headers, String payload, String mime) throws Exception;
     }
 }
