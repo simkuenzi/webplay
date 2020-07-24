@@ -20,7 +20,7 @@ import java.util.stream.IntStream;
 
 public class RecordedTest {
 
-    private static final List<String> restrictedHeaders = Arrays.asList("host", "connection", "content-length");
+    private static final List<String> restrictedHeaders = Arrays.asList("host", "connection", "content-length", "upgrade");
 
     private final XPathFactory factory = XPathFactory.newInstance();
     private final XPathExpression urlPathExpr = factory.newXPath().compile("request/@urlPath");

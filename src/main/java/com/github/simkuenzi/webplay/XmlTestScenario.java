@@ -56,10 +56,11 @@ public class XmlTestScenario implements TestScenario {
     private void writeAssertion(XMLStreamWriter writer, String expectedAttrName, String expectedAttrValue, String selector) throws XMLStreamException {
         writer.writeStartElement("assertion");
         writer.writeAttribute("selector", selector);
-        writer.writeEmptyElement("expectedAttr");
+        writer.writeStartElement("expectedAttr");
         writer.writeAttribute("xml:space", "preserve");
         writer.writeAttribute("name", expectedAttrName);
         writer.writeCharacters(expectedAttrValue);
+        writer.writeEndElement();
         writer.writeEndElement();
     }
 

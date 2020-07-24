@@ -7,7 +7,7 @@ import java.util.Comparator;
 
 class TestFs {
 
-    private Path root;
+    private final Path root;
 
     TestFs(Path root) {
         this.root = root;

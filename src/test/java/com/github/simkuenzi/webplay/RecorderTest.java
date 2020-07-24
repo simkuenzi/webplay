@@ -78,7 +78,7 @@ public class RecorderTest {
                                 "      <header name=\"Upgrade\" value=\"h2c\"/>\n" +
                                 "    </request>\n" +
                                 "    <assertion selector=\"input[name=myTextfield]\">\n" +
-                                "      <expectedAttr xml:space=\"preserve\" name=\"value\"/>textValue</assertion>\n" +
+                                "      <expectedAttr xml:space=\"preserve\" name=\"value\">textValue</expectedAttr></assertion>\n" +
                                 "    <assertion selector=\"textarea[name=myTextarea]\">\n" +
                                 "      <expectedText xml:space=\"preserve\">someText</expectedText></assertion>\n" +
                                 "  </test>\n" +
@@ -150,7 +150,7 @@ public class RecorderTest {
                                 "      <header name=\"Upgrade\" value=\"h2c\"/>\n" +
                                 "    </request>\n" +
                                 "    <assertion selector=\"input[name=myTextfield]\">\n" +
-                                "      <expectedAttr xml:space=\"preserve\" name=\"value\"/>textValue</assertion>\n" +
+                                "      <expectedAttr xml:space=\"preserve\" name=\"value\">textValue</expectedAttr></assertion>\n" +
                                 "    <assertion selector=\"textarea[name=myTextarea]\">\n" +
                                 "      <expectedText xml:space=\"preserve\">line1\n" +
                                 "\tline2</expectedText></assertion>\n" +
