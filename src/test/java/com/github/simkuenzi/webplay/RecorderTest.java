@@ -34,7 +34,7 @@ public class RecorderTest {
     public void startStop() throws Exception {
         TestFs.use(testFs -> {
             recorder(testFs).start().stop();
-            assertOutput(testFs, "<scenario/>");
+            assertOutput(testFs, "<test/>");
         });
     }
 
@@ -74,22 +74,20 @@ public class RecorderTest {
                     assertEquals(html, response);
                 }
                 assertOutput(testFs,
-                        "<scenario>\n" +
-                                "  <test>\n" +
-                                "    <request urlPath=\"/\" method=\"GET\">\n" +
-                                "      <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
-                                "      <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
-                                "      <header name=\"Host\" value=\"localhost:10011\"/>\n" +
-                                "      <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
-                                "      <header name=\"Content-Length\" value=\"0\"/>\n" +
-                                "      <header name=\"Upgrade\" value=\"h2c\"/>\n" +
-                                "    </request>\n" +
+                        "<test>\n" +
+                                "  <request urlPath=\"/\" method=\"GET\">\n" +
+                                "    <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
+                                "    <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "    <header name=\"Host\" value=\"localhost:10011\"/>\n" +
+                                "    <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "    <header name=\"Content-Length\" value=\"0\"/>\n" +
+                                "    <header name=\"Upgrade\" value=\"h2c\"/>\n" +
                                 "    <assertion selector=\"input[name=myTextfield]\">\n" +
                                 "      <expectedAttr xml:space=\"preserve\" name=\"value\">textValue</expectedAttr></assertion>\n" +
                                 "    <assertion selector=\"textarea[name=myTextarea]\">\n" +
                                 "      <expectedText xml:space=\"preserve\">someText</expectedText></assertion>\n" +
-                                "  </test>\n" +
-                                "</scenario>");
+                                "  </request>\n" +
+                                "</test>");
             });
         } finally {
             app.stop();
@@ -112,19 +110,17 @@ public class RecorderTest {
                     assertEquals(302, response.statusCode());
                 }
                 assertOutput(testFs,
-                        "<scenario>\n" +
-                                "  <test>\n" +
-                                "    <request urlPath=\"/\" method=\"POST\">\n" +
-                                "      <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
-                                "      <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
-                                "      <header name=\"Host\" value=\"localhost:10011\"/>\n" +
-                                "      <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
-                                "      <header name=\"Content-Length\" value=\"13\"/>\n" +
-                                "      <header name=\"Upgrade\" value=\"h2c\"/>\n" +
-                                "      <header name=\"Content-Type\" value=\"application/x-www-form-urlencoded\"/>\n" +
-                                "      <payload xml:space=\"preserve\">myField=Hello</payload></request>\n" +
-                                "  </test>\n" +
-                                "</scenario>");
+                        "<test>\n" +
+                                "  <request urlPath=\"/\" method=\"POST\">\n" +
+                                "    <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
+                                "    <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "    <header name=\"Host\" value=\"localhost:10011\"/>\n" +
+                                "    <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "    <header name=\"Content-Length\" value=\"13\"/>\n" +
+                                "    <header name=\"Upgrade\" value=\"h2c\"/>\n" +
+                                "    <header name=\"Content-Type\" value=\"application/x-www-form-urlencoded\"/>\n" +
+                                "    <payload xml:space=\"preserve\">myField=Hello</payload></request>\n" +
+                                "</test>");
             });
         } finally {
             app.stop();
@@ -146,23 +142,21 @@ public class RecorderTest {
                     assertEquals(html, response);
                 }
                 assertOutput(testFs,
-                        "<scenario>\n" +
-                                "  <test>\n" +
-                                "    <request urlPath=\"/\" method=\"GET\">\n" +
-                                "      <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
-                                "      <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
-                                "      <header name=\"Host\" value=\"localhost:10011\"/>\n" +
-                                "      <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
-                                "      <header name=\"Content-Length\" value=\"0\"/>\n" +
-                                "      <header name=\"Upgrade\" value=\"h2c\"/>\n" +
-                                "    </request>\n" +
+                        "<test>\n" +
+                                "  <request urlPath=\"/\" method=\"GET\">\n" +
+                                "    <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
+                                "    <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "    <header name=\"Host\" value=\"localhost:10011\"/>\n" +
+                                "    <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "    <header name=\"Content-Length\" value=\"0\"/>\n" +
+                                "    <header name=\"Upgrade\" value=\"h2c\"/>\n" +
                                 "    <assertion selector=\"input[name=myTextfield]\">\n" +
                                 "      <expectedAttr xml:space=\"preserve\" name=\"value\">textValue</expectedAttr></assertion>\n" +
                                 "    <assertion selector=\"textarea[name=myTextarea]\">\n" +
                                 "      <expectedText xml:space=\"preserve\">line1\n" +
                                 "\tline2</expectedText></assertion>\n" +
-                                "  </test>\n" +
-                                "</scenario>");
+                                "  </request>\n" +
+                                "</test>");
             });
         } finally {
             app.stop();
@@ -200,20 +194,18 @@ public class RecorderTest {
                     assertArrayEquals(image, responseImage);
                 }
                 assertOutput(testFs,
-                        "<scenario>\n" +
-                                "  <test>\n" +
-                                "    <request urlPath=\"/html\" method=\"GET\">\n" +
-                                "      <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
-                                "      <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
-                                "      <header name=\"Host\" value=\"localhost:10011\"/>\n" +
-                                "      <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
-                                "      <header name=\"Content-Length\" value=\"0\"/>\n" +
-                                "      <header name=\"Upgrade\" value=\"h2c\"/>\n" +
-                                "    </request>\n" +
+                        "<test>\n" +
+                                "  <request urlPath=\"/html\" method=\"GET\">\n" +
+                                "    <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
+                                "    <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "    <header name=\"Host\" value=\"localhost:10011\"/>\n" +
+                                "    <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "    <header name=\"Content-Length\" value=\"0\"/>\n" +
+                                "    <header name=\"Upgrade\" value=\"h2c\"/>\n" +
                                 "    <assertion selector=\"input[name=myTextfield]\">\n" +
                                 "      <expectedAttr xml:space=\"preserve\" name=\"value\">textValue</expectedAttr></assertion>\n" +
-                                "  </test>\n" +
-                                "</scenario>");
+                                "  </request>\n" +
+                                "</test>\n");
             });
         } finally {
             app.stop();
@@ -237,36 +229,32 @@ public class RecorderTest {
                     assertEquals(html, response2);
                 }
                 assertOutput(testFs,
-                        "<scenario>\n" +
-                                "  <test>\n" +
-                                "    <request urlPath=\"/\" method=\"GET\">\n" +
-                                "      <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
-                                "      <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
-                                "      <header name=\"Host\" value=\"localhost:10011\"/>\n" +
-                                "      <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
-                                "      <header name=\"Content-Length\" value=\"0\"/>\n" +
-                                "      <header name=\"Upgrade\" value=\"h2c\"/>\n" +
-                                "    </request>\n" +
+                        "<test>\n" +
+                                "  <request urlPath=\"/\" method=\"GET\">\n" +
+                                "    <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
+                                "    <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "    <header name=\"Host\" value=\"localhost:10011\"/>\n" +
+                                "    <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "    <header name=\"Content-Length\" value=\"0\"/>\n" +
+                                "    <header name=\"Upgrade\" value=\"h2c\"/>\n" +
                                 "    <assertion selector=\"input[name=myTextfield]\">\n" +
                                 "      <expectedAttr xml:space=\"preserve\" name=\"value\">textValue</expectedAttr></assertion>\n" +
                                 "    <assertion selector=\"textarea[name=myTextarea]\">\n" +
                                 "      <expectedText xml:space=\"preserve\">someText</expectedText></assertion>\n" +
-                                "  </test>\n" +
-                                "  <test>\n" +
-                                "    <request urlPath=\"/\" method=\"GET\">\n" +
-                                "      <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
-                                "      <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
-                                "      <header name=\"Host\" value=\"localhost:10011\"/>\n" +
-                                "      <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
-                                "      <header name=\"Content-Length\" value=\"0\"/>\n" +
-                                "      <header name=\"Upgrade\" value=\"h2c\"/>\n" +
-                                "    </request>\n" +
+                                "  </request>\n" +
+                                "  <request urlPath=\"/\" method=\"GET\">\n" +
+                                "    <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
+                                "    <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "    <header name=\"Host\" value=\"localhost:10011\"/>\n" +
+                                "    <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "    <header name=\"Content-Length\" value=\"0\"/>\n" +
+                                "    <header name=\"Upgrade\" value=\"h2c\"/>\n" +
                                 "    <assertion selector=\"input[name=myTextfield]\">\n" +
                                 "      <expectedAttr xml:space=\"preserve\" name=\"value\">textValue</expectedAttr></assertion>\n" +
                                 "    <assertion selector=\"textarea[name=myTextarea]\">\n" +
                                 "      <expectedText xml:space=\"preserve\">someText</expectedText></assertion>\n" +
-                                "  </test>\n" +
-                                "</scenario>");
+                                "  </request>\n" +
+                                "</test>");
             });
         } finally {
             app.stop();

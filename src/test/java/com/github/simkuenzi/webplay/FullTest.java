@@ -1,6 +1,5 @@
 package com.github.simkuenzi.webplay;
 
-import com.github.simkuenzi.webplay.play.RecordedScenario;
 import com.github.simkuenzi.webplay.play.RecordedTest;
 import com.github.simkuenzi.webplay.record.Recorder;
 import io.javalin.Javalin;
@@ -34,10 +33,8 @@ public class FullTest {
                     assertEquals(html, response);
                 }
 
-                RecordedScenario recordedScenario = new RecordedScenario(testFs.outputFile());
-                for (RecordedTest test : recordedScenario.tests()) {
-                    test.play("http://localhost:" + PORT_OF_APP + "/", Assert::assertEquals);
-                }
+                RecordedTest recordedTest = new RecordedTest(testFs.outputFile());
+                recordedTest.play("http://localhost:" + PORT_OF_APP + "/", Assert::assertEquals);
             });
         } finally {
             app.stop();

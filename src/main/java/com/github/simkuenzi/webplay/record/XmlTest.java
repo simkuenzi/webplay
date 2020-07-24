@@ -6,34 +6,30 @@ import javax.xml.stream.XMLStreamWriter;
 import java.io.Writer;
 import java.util.Map;
 
-public class XmlTestScenario implements TestScenario {
+public class XmlTest implements Test {
     private final Writer out;
 
-    public XmlTestScenario(Writer out) {
+    public XmlTest(Writer out) {
         this.out = out;
     }
 
     @Override
-    public RequestBuilder scenario() throws XMLStreamException {
+    public RequestBuilder test() throws XMLStreamException {
         XMLStreamWriter writer = XMLOutputFactory.newFactory().createXMLStreamWriter(out);
         writer.writeStartDocument();
-        writeScenarioStart(writer);
+        writeTestStart(writer);
         return new XmlRequestBuilder(writer);
     }
 
-    private void writeScenarioStart(XMLStreamWriter writer) throws XMLStreamException {
-        writer.writeStartElement("scenario");
-    }
-
-    private void writeScenarioEnd(XMLStreamWriter writer) throws XMLStreamException {
-        writer.writeEndElement();
+    private void writeTestStart(XMLStreamWriter writer) throws XMLStreamException {
+        writer.writeStartElement("test");
     }
 
     private void writeTestEnd(XMLStreamWriter writer) throws XMLStreamException {
         writer.writeEndElement();
     }
 
-    private void writeRequest(XMLStreamWriter writer, String urlPath, String method, Map<String, String> headers, String payload) throws XMLStreamException {
+    private void writeRequestStart(XMLStreamWriter writer, String urlPath, String method, Map<String, String> headers, String payload) throws XMLStreamException {
         writer.writeStartElement("request");
         writer.writeAttribute("urlPath", urlPath);
         writer.writeAttribute("method", method);
@@ -50,7 +46,9 @@ public class XmlTestScenario implements TestScenario {
             writer.writeCharacters(payload);
             writer.writeEndElement();
         }
+    }
 
+    private void writeRequestEnd(XMLStreamWriter writer) throws XMLStreamException {
         writer.writeEndElement();
     }
 
@@ -75,10 +73,6 @@ public class XmlTestScenario implements TestScenario {
         writer.writeEndElement();
     }
 
-    private void writeTestStart(XMLStreamWriter writer) throws XMLStreamException {
-        writer.writeStartElement("test");
-    }
-
     private class XmlRequestBuilder implements RequestBuilder {
         private final XMLStreamWriter writer;
 
@@ -88,14 +82,13 @@ public class XmlTestScenario implements TestScenario {
 
         @Override
         public AssertionBuilder request(String urlPath, String method, Map<String, String> headers, String payload) throws XMLStreamException {
-            writeTestStart(writer);
-            writeRequest(writer, urlPath, method, headers, payload);
+            writeRequestStart(writer, urlPath, method, headers, payload);
             return new XmlAssertionBuilder(writer);
         }
 
         @Override
         public void end() throws XMLStreamException {
-           writeScenarioEnd(writer);
+            writeTestEnd(writer);
         }
     }
 
@@ -121,16 +114,15 @@ public class XmlTestScenario implements TestScenario {
 
         @Override
         public AssertionBuilder request(String urlPath, String method, Map<String, String> headers, String payload) throws Exception {
-            writeTestEnd(writer);
-            writeTestStart(writer);
-            writeRequest(writer, urlPath, method, headers, payload);
+            writeRequestEnd(writer);
+            writeRequestStart(writer, urlPath, method, headers, payload);
             return new XmlAssertionBuilder(writer);
         }
 
         @Override
         public void end() throws Exception {
+            writeRequestEnd(writer);
             writeTestEnd(writer);
-            writeScenarioEnd(writer);
         }
     }
 }

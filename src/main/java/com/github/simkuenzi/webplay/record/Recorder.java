@@ -62,7 +62,7 @@ public class Recorder {
     private void acceptConnections(Recording recording, ServerSocketChannel serverSocket) throws Exception {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         try (Writer out = new OutputStreamWriter(buffer)) {
-            RequestBuilder requestBuilder = new XmlTestScenario(out).scenario();
+            RequestBuilder requestBuilder = new XmlTest(out).test();
             try (SocketChannel clientSocket = serverSocket.accept()) {
                 while (recording.running) {
                     try (SocketChannel appSocket = SocketChannel.open(new InetSocketAddress("localhost", portOfApp))) {
