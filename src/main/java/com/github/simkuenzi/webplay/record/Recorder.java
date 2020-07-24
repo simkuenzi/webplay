@@ -4,7 +4,6 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
-import javax.xml.stream.XMLStreamException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
@@ -61,7 +60,7 @@ public class Recorder {
     private void acceptConnections(Recording recording, ServerSocketChannel serverSocket) throws Exception {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         try (Writer out = new OutputStreamWriter(buffer)) {
-            RequestBuilder requestBuilder = new XmlTestScenario(out).testScenario();
+            RequestBuilder requestBuilder = new XmlTestScenario(out).scenario();
             try (SocketChannel clientSocket = serverSocket.accept()) {
                 while (recording.running) {
                     try (SocketChannel appSocket = SocketChannel.open(new InetSocketAddress("localhost", portOfApp))) {
@@ -203,7 +202,7 @@ public class Recorder {
             this.mime = mime;
         }
 
-        public RequestBuilder request(String serverPayload, String serverMime) throws XMLStreamException {
+        public RequestBuilder request(String serverPayload, String serverMime) throws Exception {
             if (includedContentTypes.contains(serverMime) || includedContentTypes.contains(mime)) {
                 AssertionBuilder assertionBuilder = requestBuilder.request(urlPath, method, headers, payload);
                 Document document = Jsoup.parse(serverPayload);

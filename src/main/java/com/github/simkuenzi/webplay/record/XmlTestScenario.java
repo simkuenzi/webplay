@@ -14,48 +14,15 @@ public class XmlTestScenario implements TestScenario {
     }
 
     @Override
-    public RequestBuilder testScenario() throws XMLStreamException {
+    public RequestBuilder scenario() throws XMLStreamException {
         XMLStreamWriter writer = XMLOutputFactory.newFactory().createXMLStreamWriter(out);
         writer.writeStartDocument();
         writeScenarioStart(writer);
-        return new RequestBuilder() {
-            @Override
-            public Request request(String urlPath, String method, Map<String, String> headers, String payload) throws XMLStreamException {
-                writeTestStart(writer);
-                writeRequest(writer, urlPath, method, headers, payload);
-                return new XmlRequest(writer);
-            }
-
-            @Override
-            public void end() throws XMLStreamException {
-               writeScenarioEnd(writer);
-            }
-        };
+        return new XmlRequestBuilder(writer);
     }
 
     private void writeScenarioStart(XMLStreamWriter writer) throws XMLStreamException {
         writer.writeStartElement("scenario");
-    }
-
-    private void writeAssertion(XMLStreamWriter writer, String expectedText, String selector) throws XMLStreamException {
-        writer.writeStartElement("assertion");
-        writer.writeAttribute("selector", selector);
-        writer.writeStartElement("expectedText");
-        writer.writeAttribute("xml:space", "preserve");
-        writer.writeCharacters(expectedText);
-        writer.writeEndElement();
-        writer.writeEndElement();
-    }
-
-    private void writeAssertion(XMLStreamWriter writer, String expectedAttrName, String expectedAttrValue, String selector) throws XMLStreamException {
-        writer.writeStartElement("assertion");
-        writer.writeAttribute("selector", selector);
-        writer.writeStartElement("expectedAttr");
-        writer.writeAttribute("xml:space", "preserve");
-        writer.writeAttribute("name", expectedAttrName);
-        writer.writeCharacters(expectedAttrValue);
-        writer.writeEndElement();
-        writer.writeEndElement();
     }
 
     private void writeScenarioEnd(XMLStreamWriter writer) throws XMLStreamException {
@@ -87,74 +54,81 @@ public class XmlTestScenario implements TestScenario {
         writer.writeEndElement();
     }
 
+    private void writeAssertion(XMLStreamWriter writer, String expectedText, String selector) throws XMLStreamException {
+        writer.writeStartElement("assertion");
+        writer.writeAttribute("selector", selector);
+        writer.writeStartElement("expectedText");
+        writer.writeAttribute("xml:space", "preserve");
+        writer.writeCharacters(expectedText);
+        writer.writeEndElement();
+        writer.writeEndElement();
+    }
+
+    private void writeAssertion(XMLStreamWriter writer, String expectedAttrName, String expectedAttrValue, String selector) throws XMLStreamException {
+        writer.writeStartElement("assertion");
+        writer.writeAttribute("selector", selector);
+        writer.writeStartElement("expectedAttr");
+        writer.writeAttribute("xml:space", "preserve");
+        writer.writeAttribute("name", expectedAttrName);
+        writer.writeCharacters(expectedAttrValue);
+        writer.writeEndElement();
+        writer.writeEndElement();
+    }
+
     private void writeTestStart(XMLStreamWriter writer) throws XMLStreamException {
         writer.writeStartElement("test");
     }
 
-    private class XmlAssertion implements Assertion {
-
+    private class XmlRequestBuilder implements RequestBuilder {
         private final XMLStreamWriter writer;
 
-        public XmlAssertion(XMLStreamWriter writer) {
+        public XmlRequestBuilder(XMLStreamWriter writer) {
             this.writer = writer;
         }
 
         @Override
-        public Assertion assertion(String expectedText, String selector) throws XMLStreamException {
-            writeAssertion(writer, expectedText, selector);
-            return new XmlAssertion(writer);
-        }
-
-        @Override
-        public Assertion assertion(String expectedAttrName, String expectedAttrValue, String selector) throws XMLStreamException {
-            writeAssertion(writer, expectedAttrName, expectedAttrValue, selector);
-            return new XmlAssertion(writer);
-        }
-
-        @Override
-        public Request request(String urlPath, String method, Map<String, String> headers, String payload) throws XMLStreamException {
-            writeTestEnd(writer);
+        public AssertionBuilder request(String urlPath, String method, Map<String, String> headers, String payload) throws XMLStreamException {
             writeTestStart(writer);
             writeRequest(writer, urlPath, method, headers, payload);
-            return new XmlRequest(writer);
-        }
-        @Override
-        public void end() throws XMLStreamException {
-            writeTestEnd(writer);
-            writeScenarioEnd(writer);
+            return new XmlAssertionBuilder(writer);
         }
 
+        @Override
+        public void end() throws XMLStreamException {
+           writeScenarioEnd(writer);
+        }
     }
 
-    private class XmlRequest implements Request {
+    private class XmlAssertionBuilder implements AssertionBuilder {
+
         private final XMLStreamWriter writer;
 
-        public XmlRequest(XMLStreamWriter writer) {
+        private XmlAssertionBuilder(XMLStreamWriter writer) {
             this.writer = writer;
         }
 
         @Override
-        public Assertion assertion(String expectedAttrName, String expectedAttrValue, String selector) throws XMLStreamException {
+        public AssertionBuilder assertion(String expectedAttrName, String expectedAttrValue, String selector) throws XMLStreamException {
             writeAssertion(writer, expectedAttrName, expectedAttrValue, selector);
-            return new XmlAssertion(writer);
+            return new XmlAssertionBuilder(writer);
         }
 
         @Override
-        public Assertion assertion(String expectedText, String selector) throws XMLStreamException {
+        public AssertionBuilder assertion(String expectedText, String selector) throws XMLStreamException {
             writeAssertion(writer, expectedText, selector);
-            return new XmlAssertion(writer);
+            return new XmlAssertionBuilder(writer);
         }
 
         @Override
-        public Request request(String urlPath, String method, Map<String, String> headers, String payload) throws XMLStreamException {
+        public AssertionBuilder request(String urlPath, String method, Map<String, String> headers, String payload) throws Exception {
             writeTestEnd(writer);
             writeTestStart(writer);
             writeRequest(writer, urlPath, method, headers, payload);
-            return new XmlRequest(writer);
+            return new XmlAssertionBuilder(writer);
         }
 
         @Override
-        public void end() throws XMLStreamException {
+        public void end() throws Exception {
             writeTestEnd(writer);
             writeScenarioEnd(writer);
         }
