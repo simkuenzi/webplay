@@ -25,8 +25,8 @@ public class RecordedTest {
     }
 
     public void play(String baseUrl, RecordedRequest.AssertionMethod assertionMethod) throws Exception {
-        for (RecordedRequest request : requests()) {
-            request.play(baseUrl, assertionMethod);
+        for (int i = 0; i < requests().size(); i++) {
+            requests().get(i).play(i, baseUrl, assertionMethod);
         }
     }
 

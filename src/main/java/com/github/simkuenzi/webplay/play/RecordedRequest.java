@@ -44,11 +44,13 @@ class RecordedRequest {
         this.requestNode = requestNode;
     }
 
-    public void play(String baseUrl, AssertionMethod assertionMethod) throws Exception {
+    public void play(int requestIndex, String baseUrl, AssertionMethod assertionMethod) throws Exception {
         HttpClient httpClient = HttpClient.newHttpClient();
+        String method = methodExpr.evaluate(requestNode);
+        String urlPath = urlPathExpr.evaluate(requestNode);
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-                .method(methodExpr.evaluate(requestNode), HttpRequest.BodyPublishers.ofString(payloadExpr.evaluate(requestNode)))
-                .uri(new URI(baseUrl + urlPathExpr.evaluate(requestNode)));
+                .method(method, HttpRequest.BodyPublishers.ofString(payloadExpr.evaluate(requestNode)))
+                .uri(new URI(baseUrl + urlPath));
 
         NodeList headerNodes = (NodeList) headerExpr.evaluate(requestNode, XPathConstants.NODESET);
         IntStream.range(0, headerNodes.getLength()).mapToObj(headerNodes::item).forEach(headerNode -> {
@@ -70,6 +72,8 @@ class RecordedRequest {
 
         Document doc = Jsoup.parse(httpResponse.body());
 
+        String messagePrefix = String.format("Assertion failed for request[%d] - %s %s%n", requestIndex, method, urlPath);
+
         NodeList assertions = (NodeList) assertionExpr.evaluate(requestNode, XPathConstants.NODESET);
         IntStream.range(0, assertions.getLength()).mapToObj(assertions::item).forEach(assertion -> {
             try {
@@ -82,7 +86,7 @@ class RecordedRequest {
                     String expected = expectedTextValueExpr.evaluate(expectedText).lines().collect(Collectors.joining(System.lineSeparator()));
                     String actual = actualElement.text().lines().collect(Collectors.joining(System.lineSeparator()));
                     assertionMethod.call(
-                            String.format("The element %s does evaluate to '%s', but '%s' is expected.", selector, actual, expected),
+                            messagePrefix + String.format("The element %s does evaluate to '%s', but '%s' is expected.", selector, actual, expected),
                             expected, actual
                     );
                 } else if (expectedAttr != null) {
@@ -90,7 +94,7 @@ class RecordedRequest {
                     String attrName = expectedAttrNameExpr.evaluate(expectedAttr);
                     String actualValue = actualElement.attr(attrName);
                     assertionMethod.call(
-                            String.format("The attribute %s of the element %s does evaluate to '%s', but '%s' is expected.", attrName, selector, actualValue, expected),
+                            messagePrefix + String.format("The attribute %s of the element %s does evaluate to '%s', but '%s' is expected.", attrName, selector, actualValue, expected),
                             expected, actualValue
                     );
                 }
