@@ -1,4 +1,4 @@
-package com.github.simkuenzi.webplay;
+package com.github.simkuenzi.webplay.record;
 
 import javax.xml.stream.XMLStreamException;
 import java.util.Map;

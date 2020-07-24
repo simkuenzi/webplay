@@ -1,4 +1,4 @@
-package com.github.simkuenzi.webplay;
+package com.github.simkuenzi.webplay.play;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;

@@ -1,5 +1,6 @@
 package com.github.simkuenzi.webplay;
 
+import com.github.simkuenzi.webplay.record.Recorder;
 import io.javalin.Javalin;
 import org.custommonkey.xmlunit.XMLUnit;
 import org.junit.Before;

@@ -1,4 +1,4 @@
-package com.github.simkuenzi.webplay;
+package com.github.simkuenzi.webplay.record;
 
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -10,7 +10,6 @@ import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class XmlTestScenario implements TestScenario {
     private final Writer out;

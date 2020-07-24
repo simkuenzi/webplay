@@ -1,5 +1,8 @@
 package com.github.simkuenzi.webplay;
 
+import com.github.simkuenzi.webplay.play.RecordedScenario;
+import com.github.simkuenzi.webplay.play.RecordedTest;
+import com.github.simkuenzi.webplay.record.Recorder;
 import io.javalin.Javalin;
 import org.junit.Assert;
 import org.junit.Test;
