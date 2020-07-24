@@ -35,7 +35,7 @@ public class RecordedTest {
         DocumentBuilder builder = factory.newDocumentBuilder();
         try (InputStream in = testFile.openStream()) {
             Document document = builder.parse(in);
-            NodeList testNodes = document.getDocumentElement().getElementsByTagName("test");
+            NodeList testNodes = document.getDocumentElement().getElementsByTagName("request");
             return IntStream.range(0, testNodes.getLength())
                     .mapToObj(i -> {
                         try {

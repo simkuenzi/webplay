@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?><test>
+    <request urlPath="/" method="GET">
+        <header name="Connection" value="Upgrade, HTTP2-Settings"/>
+        <header name="User-Agent" value="Java-http-client/14.0.1"/>
+        <header name="Host" value="localhost:10011"/>
+        <header name="HTTP2-Settings" value="AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA"/>
+        <header name="Content-Length" value="0"/>
+        <header name="Upgrade" value="h2c"/>
+        <assertion selector="input[name=myTextfield]">
+            <expectedAttr xml:space="preserve" name="value">textValue</expectedAttr></assertion>
+        <assertion selector="textarea[name=myTextarea]">
+            <expectedText xml:space="preserve">someText</expectedText></assertion>
+    </request>
+</test>
