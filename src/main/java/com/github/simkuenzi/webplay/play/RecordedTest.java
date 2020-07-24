@@ -16,6 +16,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class RecordedTest {
@@ -75,18 +76,19 @@ public class RecordedTest {
                 Node expectedText = (Node) expectedTextExpr.evaluate(assertion, XPathConstants.NODE);
                 Node expectedAttr = (Node) expectedAttrExpr.evaluate(assertion, XPathConstants.NODE);
                 String selector = selectorExpr.evaluate(assertion);
-                Element actual = doc.selectFirst(selector);
+                Element actualElement = doc.selectFirst(selector);
 
                 if (expectedText != null) {
-                    String expected = expectedTextValueExpr.evaluate(expectedText);
+                    String expected = expectedTextValueExpr.evaluate(expectedText).lines().collect(Collectors.joining(System.lineSeparator()));
+                    String actual = actualElement.text().lines().collect(Collectors.joining(System.lineSeparator()));
                     assertionMethod.call(
-                            String.format("The element %s does evaluate to '%s', but '%s' is expected.", selector, actual.text(), expected),
-                            expected, actual.text()
+                            String.format("The element %s does evaluate to '%s', but '%s' is expected.", selector, actual, expected),
+                            expected, actual
                     );
                 } else if (expectedAttr != null) {
                     String expected = expectedAttrValueExpr.evaluate(expectedAttr);
                     String attrName = expectedAttrNameExpr.evaluate(expectedAttr);
-                    String actualValue = actual.attr(attrName);
+                    String actualValue = actualElement.attr(attrName);
                     assertionMethod.call(
                             String.format("The attribute %s of the element %s does evaluate to '%s', but '%s' is expected.", attrName, selector, actualValue, expected),
                             expected, actualValue
