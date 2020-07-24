@@ -80,7 +80,7 @@ public class RecordedTest {
                 if (expectedText != null) {
                     String expected = expectedTextValueExpr.evaluate(expectedText);
                     assertionMethod.call(
-                            String.format("The element %s does evaluate to %s, but %s is expected.", selector, actual, expected),
+                            String.format("The element %s does evaluate to '%s', but '%s' is expected.", selector, actual.text(), expected),
                             expected, actual.text()
                     );
                 } else if (expectedAttr != null) {
@@ -88,7 +88,7 @@ public class RecordedTest {
                     String attrName = expectedAttrNameExpr.evaluate(expectedAttr);
                     String actualValue = actual.attr(attrName);
                     assertionMethod.call(
-                            String.format("The attribute %s of the element %s does evaluate to %s, but %s is expected.", attrName, selector, actualValue, expected),
+                            String.format("The attribute %s of the element %s does evaluate to '%s', but '%s' is expected.", attrName, selector, actualValue, expected),
                             expected, actualValue
                     );
                 }
