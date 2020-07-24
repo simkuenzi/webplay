@@ -1,6 +1,8 @@
 package com.github.simkuenzi.webplay;
 
 import io.javalin.Javalin;
+import org.custommonkey.xmlunit.XMLUnit;
+import org.junit.Before;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
@@ -22,6 +24,11 @@ public class RecorderTest {
 
     public static final int PORT_OF_APP = 10022;
     public static final int PORT_OF_RECORDER = 10011;
+
+    @Before
+    public void setUp() {
+        XMLUnit.setIgnoreWhitespace(true);
+    }
 
     @Test
     public void startStop() throws Exception {
@@ -71,18 +78,15 @@ public class RecorderTest {
                                 "      <header name=\"Upgrade\" value=\"h2c\"/>\n" +
                                 "    </request>\n" +
                                 "    <assertion selector=\"input[name=myTextfield]\">\n" +
-                                "      <expectedAttr name=\"value\" value=\"textValue\"/>\n" +
-                                "    </assertion>\n" +
+                                "      <expectedAttr xml:space=\"preserve\" name=\"value\"/>textValue</assertion>\n" +
                                 "    <assertion selector=\"textarea[name=myTextarea]\">\n" +
-                                "      <expectedText text=\"someText\"/>\n" +
-                                "    </assertion>\n" +
+                                "      <expectedText xml:space=\"preserve\">someText</expectedText></assertion>\n" +
                                 "  </test>\n" +
-                                "</scenario>\n");
+                                "</scenario>");
             });
         } finally {
             app.stop();
         }
-
     }
 
     @Test
@@ -103,7 +107,7 @@ public class RecorderTest {
                 assertOutput(testFs,
                         "<scenario>\n" +
                                 "  <test>\n" +
-                                "    <request urlPath=\"/\" method=\"POST\" payload=\"myField=Hello\">\n" +
+                                "    <request urlPath=\"/\" method=\"POST\">\n" +
                                 "      <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
                                 "      <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
                                 "      <header name=\"Host\" value=\"localhost:10011\"/>\n" +
@@ -111,7 +115,45 @@ public class RecorderTest {
                                 "      <header name=\"Content-Length\" value=\"13\"/>\n" +
                                 "      <header name=\"Upgrade\" value=\"h2c\"/>\n" +
                                 "      <header name=\"Content-Type\" value=\"application/x-www-form-urlencoded\"/>\n" +
+                                "      <payload xml:space=\"preserve\">myField=Hello</payload></request>\n" +
+                                "  </test>\n" +
+                                "</scenario>");
+            });
+        } finally {
+            app.stop();
+        }
+    }
+
+    @Test
+    public void getMultiline() throws Exception {
+        String html = "<html><body><input name='myTextfield' value='textValue' /><textarea name='myTextarea'>line1\n\tline2</textarea></body></html>";
+        Javalin app = Javalin.create().start(PORT_OF_APP).get("/", ctx -> ctx.html(html));
+        try {
+            TestFs.use(testFs -> {
+                try (Recorder.Recording ignored = recorder(testFs).start()) {
+                    HttpClient httpClient = HttpClient.newHttpClient();
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .GET().uri(new URI("http://localhost:" + PORT_OF_RECORDER + "/"))
+                            .build();
+                    String response = httpClient.send(request, HttpResponse.BodyHandlers.ofString()).body();
+                    assertEquals(html, response);
+                }
+                assertOutput(testFs,
+                        "<scenario>\n" +
+                                "  <test>\n" +
+                                "    <request urlPath=\"/\" method=\"GET\">\n" +
+                                "      <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
+                                "      <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "      <header name=\"Host\" value=\"localhost:10011\"/>\n" +
+                                "      <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "      <header name=\"Content-Length\" value=\"0\"/>\n" +
+                                "      <header name=\"Upgrade\" value=\"h2c\"/>\n" +
                                 "    </request>\n" +
+                                "    <assertion selector=\"input[name=myTextfield]\">\n" +
+                                "      <expectedAttr xml:space=\"preserve\" name=\"value\"/>textValue</assertion>\n" +
+                                "    <assertion selector=\"textarea[name=myTextarea]\">\n" +
+                                "      <expectedText xml:space=\"preserve\">line1\n" +
+                                "\tline2</expectedText></assertion>\n" +
                                 "  </test>\n" +
                                 "</scenario>");
             });

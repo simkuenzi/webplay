@@ -10,6 +10,7 @@ import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class XmlTestScenario implements TestScenario {
     private final Writer out;
@@ -45,8 +46,10 @@ public class XmlTestScenario implements TestScenario {
     private void writeAssertion(XMLStreamWriter writer, String expectedText, String selector) throws XMLStreamException {
         writer.writeStartElement("assertion");
         writer.writeAttribute("selector", selector);
-        writer.writeEmptyElement("expectedText");
-        writer.writeAttribute("text", expectedText);
+        writer.writeStartElement("expectedText");
+        writer.writeAttribute("xml:space", "preserve");
+        writer.writeCharacters(expectedText);
+        writer.writeEndElement();
         writer.writeEndElement();
     }
 
@@ -54,8 +57,9 @@ public class XmlTestScenario implements TestScenario {
         writer.writeStartElement("assertion");
         writer.writeAttribute("selector", selector);
         writer.writeEmptyElement("expectedAttr");
+        writer.writeAttribute("xml:space", "preserve");
         writer.writeAttribute("name", expectedAttrName);
-        writer.writeAttribute("value", expectedAttrValue);
+        writer.writeCharacters(expectedAttrValue);
         writer.writeEndElement();
     }
 
@@ -71,14 +75,18 @@ public class XmlTestScenario implements TestScenario {
         writer.writeStartElement("request");
         writer.writeAttribute("urlPath", urlPath);
         writer.writeAttribute("method", method);
-        if (!payload.isEmpty()) {
-            writer.writeAttribute("payload", payload);
-        }
 
         for (Map.Entry<String, String> header : headers.entrySet()) {
             writer.writeEmptyElement("header");
             writer.writeAttribute("name", header.getKey());
             writer.writeAttribute("value", header.getValue());
+        }
+
+        if (!payload.isEmpty()) {
+            writer.writeStartElement("payload");
+            writer.writeAttribute("xml:space", "preserve");
+            writer.writeCharacters(payload);
+            writer.writeEndElement();
         }
 
         writer.writeEndElement();

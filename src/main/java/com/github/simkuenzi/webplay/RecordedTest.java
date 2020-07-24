@@ -25,17 +25,17 @@ public class RecordedTest {
     private final XPathFactory factory = XPathFactory.newInstance();
     private final XPathExpression urlPathExpr = factory.newXPath().compile("request/@urlPath");
     private final XPathExpression methodExpr = factory.newXPath().compile("request/@method");
-    private final XPathExpression payloadExpr = factory.newXPath().compile("request/@payload");
+    private final XPathExpression payloadExpr = factory.newXPath().compile("request/payload/text()");
     private final XPathExpression headerExpr = factory.newXPath().compile("request/header");
     private final XPathExpression headerNameExpr = factory.newXPath().compile("@name");
     private final XPathExpression headerValueExpr = factory.newXPath().compile("@value");
     private final XPathExpression assertionExpr = factory.newXPath().compile("assertion");
     private final XPathExpression selectorExpr = factory.newXPath().compile("@selector");
     private final XPathExpression expectedTextExpr = factory.newXPath().compile("expectedText");
-    private final XPathExpression expectedTextValueExpr = factory.newXPath().compile("@text");
+    private final XPathExpression expectedTextValueExpr = factory.newXPath().compile("text()");
     private final XPathExpression expectedAttrExpr = factory.newXPath().compile("expectedAttr");
     private final XPathExpression expectedAttrNameExpr = factory.newXPath().compile("@name");
-    private final XPathExpression expectedAttrValueExpr = factory.newXPath().compile("@value");
+    private final XPathExpression expectedAttrValueExpr = factory.newXPath().compile("text()");
 
     private final Node testNode;
 
