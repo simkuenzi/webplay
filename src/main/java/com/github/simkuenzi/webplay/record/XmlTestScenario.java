@@ -3,11 +3,6 @@ package com.github.simkuenzi.webplay.record;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
-import javax.xml.transform.*;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
-import java.io.ByteArrayInputStream;
-import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Map;
 
@@ -94,27 +89,6 @@ public class XmlTestScenario implements TestScenario {
 
     private void writeTestStart(XMLStreamWriter writer) throws XMLStreamException {
         writer.writeStartElement("test");
-    }
-
-    public static void main(String[] args) throws XMLStreamException, TransformerException {
-        StringWriter writer = new StringWriter();
-        XmlTestScenario xmlTest = new XmlTestScenario(writer);
-        xmlTest.testScenario()
-                .request("/", "GET", Map.of("Header", "value"), "")
-                .assertion("hallo", "input[greet]")
-                .request("/", "POST", Map.of("Header", "valueX"), "formValues")
-                .assertion("hallo", "input[greet]")
-                .assertion("Bob", "input[name]")
-                .end();
-
-        Transformer transformer = TransformerFactory.newInstance().newTransformer();
-        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-        StreamResult result = new StreamResult(new StringWriter());
-        StreamSource source = new StreamSource(new ByteArrayInputStream(writer.toString().getBytes()));
-        transformer.transform(source, result);
-        String xmlString = result.getWriter().toString();
-        System.out.println(xmlString);
     }
 
     private class XmlAssertion implements Assertion {

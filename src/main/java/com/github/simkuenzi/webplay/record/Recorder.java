@@ -30,14 +30,6 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 
 public class Recorder {
 
-    public static void main(String[] args) throws Exception {
-
-        Recorder recorder = new Recorder(Paths.get("scenario.xml"), 9033, 9000,
-                List.of("text/html", "application/x-www-form-urlencoded"));
-
-        recorder.start().waitTillStop(Path.of("build/stop"));
-    }
-
     private static final Pattern REQUEST_LINE_PATTERN = Pattern.compile("(\\H+)\\h*(\\H+).*");
     private static final Pattern HEADER_PATTERN = Pattern.compile("(\\H+)\\h*:\\h*(.+)");
     private static final Pattern CONTENT_TYPE_PATTERN = Pattern.compile("(\\H+?)(:?\\h*;\\h*(\\H+)=(\\H+))*");

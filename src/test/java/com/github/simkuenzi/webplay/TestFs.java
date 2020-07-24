@@ -37,6 +37,10 @@ class TestFs {
         return root.resolve("stop");
     }
 
+    public Path anyFile() {
+        return root.resolve("any");
+    }
+
     interface Test {
         void run(TestFs testFs) throws Exception;
     }

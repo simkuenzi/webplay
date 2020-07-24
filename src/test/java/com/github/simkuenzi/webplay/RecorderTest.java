@@ -18,8 +18,7 @@ import java.nio.file.Files;
 import java.util.List;
 
 import static org.custommonkey.xmlunit.XMLAssert.assertXMLEqual;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 public class RecorderTest {
 
@@ -43,10 +42,17 @@ public class RecorderTest {
     public void startWait() throws Exception {
         TestFs.use(testFs -> {
             Files.createFile(testFs.stopFile());
+            Files.createFile(testFs.anyFile());
+
             Recorder.Recording recording = recorder(testFs).start();
             Thread waitThread = new Thread(handle(() -> recording.waitTillStop(testFs.stopFile())));
             waitThread.start();
             Thread.sleep(1_000); // Wait for the thread to listen on file.
+
+            Files.writeString(testFs.anyFile(), "stop");
+            waitThread.join(3_000);
+            assertTrue(waitThread.isAlive());
+
             Files.writeString(testFs.stopFile(), "stop");
             waitThread.join(3_000);
             assertFalse(waitThread.isAlive());
@@ -162,6 +168,58 @@ public class RecorderTest {
             app.stop();
         }
     }
+
+    @Test
+    public void filter() throws Exception {
+        String html = "<html><body><input name='myTextfield' value='textValue' /></body></html>";
+        String css = ".class { font-size: 12pt; }";
+        byte[] image = new byte[0];
+
+        Javalin app = Javalin.create().start(PORT_OF_APP)
+                .get("/html", ctx -> ctx.html(html))
+                .get("/css", ctx -> ctx.contentType("text/css").result(css))
+                .get("/image", ctx -> ctx.contentType("image/png").result(image));
+        try {
+            TestFs.use(testFs -> {
+                try (Recorder.Recording ignored = recorder(testFs).start()) {
+                    HttpClient httpClient = HttpClient.newHttpClient();
+                    HttpRequest requestHtml = HttpRequest.newBuilder()
+                            .GET().uri(new URI("http://localhost:" + PORT_OF_RECORDER + "/html"))
+                            .build();
+                    String responseHtml = httpClient.send(requestHtml, HttpResponse.BodyHandlers.ofString()).body();
+                    assertEquals(html, responseHtml);
+                    HttpRequest requestCss = HttpRequest.newBuilder()
+                            .GET().uri(new URI("http://localhost:" + PORT_OF_RECORDER + "/css"))
+                            .build();
+                    String responseCss = httpClient.send(requestCss, HttpResponse.BodyHandlers.ofString()).body();
+                    assertEquals(css, responseCss);
+                    HttpRequest requestImage = HttpRequest.newBuilder()
+                            .GET().uri(new URI("http://localhost:" + PORT_OF_RECORDER + "/image"))
+                            .build();
+                    byte[] responseImage = httpClient.send(requestImage, HttpResponse.BodyHandlers.ofByteArray()).body();
+                    assertArrayEquals(image, responseImage);
+                }
+                assertOutput(testFs,
+                        "<scenario>\n" +
+                                "  <test>\n" +
+                                "    <request urlPath=\"/html\" method=\"GET\">\n" +
+                                "      <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
+                                "      <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "      <header name=\"Host\" value=\"localhost:10011\"/>\n" +
+                                "      <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "      <header name=\"Content-Length\" value=\"0\"/>\n" +
+                                "      <header name=\"Upgrade\" value=\"h2c\"/>\n" +
+                                "    </request>\n" +
+                                "    <assertion selector=\"input[name=myTextfield]\">\n" +
+                                "      <expectedAttr xml:space=\"preserve\" name=\"value\">textValue</expectedAttr></assertion>\n" +
+                                "  </test>\n" +
+                                "</scenario>");
+            });
+        } finally {
+            app.stop();
+        }
+    }
+
 
     private void assertOutput(TestFs testFs, String expected) throws IOException, SAXException {
         try (Reader actual = Files.newBufferedReader(testFs.outputFile())) {
