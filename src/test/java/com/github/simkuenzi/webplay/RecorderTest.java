@@ -220,6 +220,58 @@ public class RecorderTest {
         }
     }
 
+    @Test
+    public void multipleRequests() throws Exception {
+        String html = "<html><body><input name='myTextfield' value='textValue' /><textarea name='myTextarea'>someText</textarea></body></html>";
+        Javalin app = Javalin.create().start(PORT_OF_APP).get("/", ctx -> ctx.html(html));
+        try {
+            TestFs.use(testFs -> {
+                try (Recorder.Recording ignored = recorder(testFs).start()) {
+                    HttpClient httpClient = HttpClient.newHttpClient();
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .GET().uri(new URI("http://localhost:" + PORT_OF_RECORDER + "/"))
+                            .build();
+                    String response1 = httpClient.send(request, HttpResponse.BodyHandlers.ofString()).body();
+                    assertEquals(html, response1);
+                    String response2 = httpClient.send(request, HttpResponse.BodyHandlers.ofString()).body();
+                    assertEquals(html, response2);
+                }
+                assertOutput(testFs,
+                        "<scenario>\n" +
+                                "  <test>\n" +
+                                "    <request urlPath=\"/\" method=\"GET\">\n" +
+                                "      <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
+                                "      <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "      <header name=\"Host\" value=\"localhost:10011\"/>\n" +
+                                "      <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "      <header name=\"Content-Length\" value=\"0\"/>\n" +
+                                "      <header name=\"Upgrade\" value=\"h2c\"/>\n" +
+                                "    </request>\n" +
+                                "    <assertion selector=\"input[name=myTextfield]\">\n" +
+                                "      <expectedAttr xml:space=\"preserve\" name=\"value\">textValue</expectedAttr></assertion>\n" +
+                                "    <assertion selector=\"textarea[name=myTextarea]\">\n" +
+                                "      <expectedText xml:space=\"preserve\">someText</expectedText></assertion>\n" +
+                                "  </test>\n" +
+                                "  <test>\n" +
+                                "    <request urlPath=\"/\" method=\"GET\">\n" +
+                                "      <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
+                                "      <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "      <header name=\"Host\" value=\"localhost:10011\"/>\n" +
+                                "      <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "      <header name=\"Content-Length\" value=\"0\"/>\n" +
+                                "      <header name=\"Upgrade\" value=\"h2c\"/>\n" +
+                                "    </request>\n" +
+                                "    <assertion selector=\"input[name=myTextfield]\">\n" +
+                                "      <expectedAttr xml:space=\"preserve\" name=\"value\">textValue</expectedAttr></assertion>\n" +
+                                "    <assertion selector=\"textarea[name=myTextarea]\">\n" +
+                                "      <expectedText xml:space=\"preserve\">someText</expectedText></assertion>\n" +
+                                "  </test>\n" +
+                                "</scenario>");
+            });
+        } finally {
+            app.stop();
+        }
+    }
 
     private void assertOutput(TestFs testFs, String expected) throws IOException, SAXException {
         try (Reader actual = Files.newBufferedReader(testFs.outputFile())) {
