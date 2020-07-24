@@ -38,18 +38,20 @@ public class Recorder {
     private final int port;
     private final int portOfApp;
     private final List<String> includedContentTypes;
+    private final String startPath;
 
 
-    public Recorder(Path outputFile, int port, int portOfApp, List<String> includedContentTypes) {
+    public Recorder(Path outputFile, int port, int portOfApp, List<String> includedContentTypes, String startPath) {
         this.outputFile = outputFile;
         this.port = port;
         this.portOfApp = portOfApp;
         this.includedContentTypes = includedContentTypes;
+        this.startPath = startPath;
     }
 
     public Recording start() throws Exception {
         Recording recording = new Recording(bind());
-        System.out.printf("Recording on http://localhost:%d%n", port);
+        System.out.printf("Recording on http://localhost:%d%s%n", port, startPath);
         return recording;
     }
 

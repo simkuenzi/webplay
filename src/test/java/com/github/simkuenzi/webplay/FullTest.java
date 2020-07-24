@@ -46,6 +46,6 @@ public class FullTest {
 
     private Recorder recorder(TestFs testFs) {
         return new Recorder(testFs.outputFile(), PORT_OF_RECORDER, PORT_OF_APP,
-                List.of("text/html", "application/x-www-form-urlencoded"));
+                List.of("text/html", "application/x-www-form-urlencoded"), "/");
     }
 }
