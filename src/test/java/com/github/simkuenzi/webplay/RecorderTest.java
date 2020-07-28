@@ -2,36 +2,27 @@ package com.github.simkuenzi.webplay;
 
 import com.github.simkuenzi.webplay.record.Recording;
 import io.javalin.Javalin;
-import org.custommonkey.xmlunit.XMLUnit;
-import org.junit.Before;
 import org.junit.Test;
-import org.xml.sax.SAXException;
+import org.xmlunit.builder.DiffBuilder;
+import org.xmlunit.builder.Input;
+import org.xmlunit.diff.Diff;
+import org.xmlunit.placeholder.PlaceholderDifferenceEvaluator;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 
-import static org.custommonkey.xmlunit.XMLAssert.assertXMLEqual;
 import static org.junit.Assert.*;
+import static org.xmlunit.matchers.CompareMatcher.isIdenticalTo;
 
 public class RecorderTest {
-
-    @Before
-    public void setUp() {
-        XMLUnit.setIgnoreWhitespace(true);
-    }
 
     @Test
     public void startStop() throws Exception {
         TestFs.use(testFs -> {
-            new TestEnv(testFs).record(() -> {
-                Thread.sleep(5000);
-            });
-            assertOutput(testFs, "<test/>");
+            new TestEnv(testFs).record(() -> Thread.sleep(5000));
+            assertOutput(testFs, "<?xml version=\"1.0\" encoding=\"UTF-8\"?><test/>");
         });
     }
 
@@ -72,14 +63,15 @@ public class RecorderTest {
                     assertEquals(html, response);
                 });
                 assertOutput(testFs,
-                        "<test>\n" +
+                        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                                "<test>\n" +
                                 "  <request urlPath=\"/\" method=\"GET\">\n" +
-                                "    <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
-                                "    <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "    <header name=\"Connection\" value=\"${xmlunit.ignore}\"/>\n" +
+                                "    <header name=\"User-Agent\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <header name=\"Host\" value=\"localhost:10011\"/>\n" +
-                                "    <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "    <header name=\"HTTP2-Settings\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <header name=\"Content-Length\" value=\"0\"/>\n" +
-                                "    <header name=\"Upgrade\" value=\"h2c\"/>\n" +
+                                "    <header name=\"Upgrade\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <assertion selector=\"input[name=myTextfield]\">\n" +
                                 "      <expectedAttr xml:space=\"preserve\" name=\"value\">textValue</expectedAttr></assertion>\n" +
                                 "    <assertion selector=\"textarea[name=myTextarea]\">\n" +
@@ -110,14 +102,15 @@ public class RecorderTest {
                     assertEquals(302, response.statusCode());
                 });
                 assertOutput(testFs,
-                        "<test>\n" +
+                        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                                "<test>\n" +
                                 "  <request urlPath=\"/\" method=\"POST\">\n" +
-                                "    <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
-                                "    <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "    <header name=\"Connection\" value=\"${xmlunit.ignore}\"/>\n" +
+                                "    <header name=\"User-Agent\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <header name=\"Host\" value=\"localhost:10011\"/>\n" +
-                                "    <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "    <header name=\"HTTP2-Settings\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <header name=\"Content-Length\" value=\"13\"/>\n" +
-                                "    <header name=\"Upgrade\" value=\"h2c\"/>\n" +
+                                "    <header name=\"Upgrade\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <header name=\"Content-Type\" value=\"application/x-www-form-urlencoded\"/>\n" +
                                 "    <payload xml:space=\"preserve\">myField=Hello</payload></request>\n" +
                                 "</test>");
@@ -144,14 +137,15 @@ public class RecorderTest {
                     assertEquals(html, response);
                 });
                 assertOutput(testFs,
-                        "<test>\n" +
+                        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                                "<test>\n" +
                                 "  <request urlPath=\"/\" method=\"GET\">\n" +
-                                "    <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
-                                "    <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "    <header name=\"Connection\" value=\"${xmlunit.ignore}\"/>\n" +
+                                "    <header name=\"User-Agent\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <header name=\"Host\" value=\"localhost:10011\"/>\n" +
-                                "    <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "    <header name=\"HTTP2-Settings\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <header name=\"Content-Length\" value=\"0\"/>\n" +
-                                "    <header name=\"Upgrade\" value=\"h2c\"/>\n" +
+                                "    <header name=\"Upgrade\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <assertion selector=\"input[name=myTextfield]\">\n" +
                                 "      <expectedAttr xml:space=\"preserve\" name=\"value\">textValue</expectedAttr></assertion>\n" +
                                 "    <assertion selector=\"textarea[name=myTextarea]\">\n" +
@@ -197,14 +191,15 @@ public class RecorderTest {
                     assertArrayEquals(image, responseImage);
                 });
                 assertOutput(testFs,
-                        "<test>\n" +
+                        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                                "<test>\n" +
                                 "  <request urlPath=\"/html\" method=\"GET\">\n" +
-                                "    <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
-                                "    <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "    <header name=\"Connection\" value=\"${xmlunit.ignore}\"/>\n" +
+                                "    <header name=\"User-Agent\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <header name=\"Host\" value=\"localhost:10011\"/>\n" +
-                                "    <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "    <header name=\"HTTP2-Settings\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <header name=\"Content-Length\" value=\"0\"/>\n" +
-                                "    <header name=\"Upgrade\" value=\"h2c\"/>\n" +
+                                "    <header name=\"Upgrade\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <assertion selector=\"input[name=myTextfield]\">\n" +
                                 "      <expectedAttr xml:space=\"preserve\" name=\"value\">textValue</expectedAttr></assertion>\n" +
                                 "  </request>\n" +
@@ -233,26 +228,27 @@ public class RecorderTest {
                     assertEquals(html, response2);
                 });
                 assertOutput(testFs,
-                        "<test>\n" +
+                        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                                "<test>\n" +
                                 "  <request urlPath=\"/\" method=\"GET\">\n" +
-                                "    <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
-                                "    <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "    <header name=\"Connection\" value=\"${xmlunit.ignore}\"/>\n" +
+                                "    <header name=\"User-Agent\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <header name=\"Host\" value=\"localhost:10011\"/>\n" +
-                                "    <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "    <header name=\"HTTP2-Settings\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <header name=\"Content-Length\" value=\"0\"/>\n" +
-                                "    <header name=\"Upgrade\" value=\"h2c\"/>\n" +
+                                "    <header name=\"Upgrade\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <assertion selector=\"input[name=myTextfield]\">\n" +
                                 "      <expectedAttr xml:space=\"preserve\" name=\"value\">textValue</expectedAttr></assertion>\n" +
                                 "    <assertion selector=\"textarea[name=myTextarea]\">\n" +
                                 "      <expectedText xml:space=\"preserve\">someText</expectedText></assertion>\n" +
                                 "  </request>\n" +
                                 "  <request urlPath=\"/\" method=\"GET\">\n" +
-                                "    <header name=\"Connection\" value=\"Upgrade, HTTP2-Settings\"/>\n" +
-                                "    <header name=\"User-Agent\" value=\"Java-http-client/14.0.1\"/>\n" +
+                                "    <header name=\"Connection\" value=\"${xmlunit.ignore}\"/>\n" +
+                                "    <header name=\"User-Agent\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <header name=\"Host\" value=\"localhost:10011\"/>\n" +
-                                "    <header name=\"HTTP2-Settings\" value=\"AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA\"/>\n" +
+                                "    <header name=\"HTTP2-Settings\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <header name=\"Content-Length\" value=\"0\"/>\n" +
-                                "    <header name=\"Upgrade\" value=\"h2c\"/>\n" +
+                                "    <header name=\"Upgrade\" value=\"${xmlunit.ignore}\"/>\n" +
                                 "    <assertion selector=\"input[name=myTextfield]\">\n" +
                                 "      <expectedAttr xml:space=\"preserve\" name=\"value\">textValue</expectedAttr></assertion>\n" +
                                 "    <assertion selector=\"textarea[name=myTextarea]\">\n" +
@@ -265,9 +261,16 @@ public class RecorderTest {
         });
     }
 
-    private void assertOutput(TestFs testFs, String expected) throws IOException, SAXException {
-        try (Reader actual = Files.newBufferedReader(testFs.outputFile())) {
-            assertXMLEqual(new StringReader(expected), actual);
+    private void assertOutput(TestFs testFs, String expected) {
+        Diff diff = DiffBuilder
+                .compare(Input.fromString(expected))
+                .withTest(Input.fromFile(testFs.outputFile().toFile()))
+                .withDifferenceEvaluator(new PlaceholderDifferenceEvaluator())
+                .ignoreWhitespace()
+                .build();
+
+        if (diff.hasDifferences()) {
+            assertThat(diff.getTestSource(), isIdenticalTo(diff.getControlSource()));
         }
     }
 }
