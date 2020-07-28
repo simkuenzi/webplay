@@ -33,6 +33,12 @@ test {
     systemProperty 'com.github.simkuenzi.webplay.testfs', "${project.buildDir}/testfs"
 }
 
+
+nexusStaging {
+    username = project.hasProperty('mavenUser') ? mavenUser : ''
+    password = project.hasProperty('mavenPassword') ? mavenPassword : ''
+}
+
 publishing {
     repositories {
         maven {
@@ -40,8 +46,8 @@ publishing {
             def snapshotsRepoUrl = 'https://oss.sonatype.org/content/repositories/snapshots'
             url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
             credentials {
-                username = mavenUser
-                password = mavenPassword
+                username = nexusStaging.username
+                password = nexusStaging.password
             }
         }
     }
@@ -79,11 +85,6 @@ publishing {
 signing {
     sign publishing.publications.mavenJava
     useGpgCmd()
-}
-
-nexusStaging {
-    username = mavenUser
-    password = mavenPassword
 }
 
 closeAndReleaseRepository.mustRunAfter = [publish]
