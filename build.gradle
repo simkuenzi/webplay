@@ -31,6 +31,9 @@ java {
 
 test {
     systemProperty 'com.github.simkuenzi.webplay.testfs', "${project.buildDir}/testfs"
+    testLogging {
+        exceptionFormat "full"
+    }
 }
 
 
