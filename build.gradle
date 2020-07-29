@@ -106,5 +106,5 @@ signing {
 closeAndReleaseRepository.mustRunAfter = [publish]
 
 release {
-    buildTasks = ['publish', 'closeAndReleaseRepository']
+    buildTasks = project.hasProperty('autoStaging') ? ['publish', 'closeAndReleaseRepository'] : ['publish']
 }
