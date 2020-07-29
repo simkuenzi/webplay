@@ -69,6 +69,7 @@ public class Recording implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
+        System.out.println("Explicitly stopping recorder...");
         stop();
     }
 
