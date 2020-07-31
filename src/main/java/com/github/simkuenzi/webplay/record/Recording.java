@@ -50,14 +50,23 @@ public class Recording implements AutoCloseable {
                 throw new IllegalStateException("Method 'run' can only entered once.");
             }
 
-            Thread watchedThread = Thread.currentThread();
-            watcher = new Thread(() -> watch(watchedThread, stopFile));
+            Thread recorderThread = new Thread(() -> {
+                while (running) {
+                    try {
+                        acceptConnection(serverSocket, portOfApp, outputFile, includedContentTypes);
+                    } catch (Throwable e) {
+                        // Do not abort on exception. Try to accept clients as long running = true
+                        e.printStackTrace();
+                    }
+                }
+            });
+            recorderThread.start();
+
+            watcher = new Thread(() -> watch(recorderThread, stopFile));
             watcher.setDaemon(true);
             watcher.start();
 
-            while (running) {
-                acceptConnection(serverSocket, portOfApp, outputFile, includedContentTypes);
-            }
+            recorderThread.join();
         }
     }
 
